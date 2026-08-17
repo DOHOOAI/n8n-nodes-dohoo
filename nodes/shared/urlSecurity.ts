@@ -27,6 +27,15 @@ const nonPublicIpv6Ranges = [
 	['ff00::', 8],
 ] as const;
 
+const awsRegionPattern =
+	'(?:af|ap|ca|eu|il|me|mx|sa|us)-(?:central|east|northeast|northwest|south|southeast|southwest|west)-[0-9]';
+const dohooRegionalS3Pattern = new RegExp(
+	`^dohoo-upload-temp\\.s3[.-]${awsRegionPattern}\\.amazonaws\\.com$`,
+);
+const dohooDualstackS3Pattern = new RegExp(
+	`^dohoo-upload-temp\\.s3\\.dualstack\\.${awsRegionPattern}\\.amazonaws\\.com$`,
+);
+
 export interface UrlValidationResult {
 	url?: URL;
 	error?: string;
@@ -156,7 +165,14 @@ export function validateDohooUploadUrl(value: string): UrlValidationResult {
 	if (!validation.url) return validation;
 	const parsed = validation.url;
 	const hostname = normalizedHostname(parsed.hostname);
-	if (!/^dohoo-upload-temp\.s3(?:[.-][a-z0-9-]+)*\.amazonaws\.com$/.test(hostname)) {
+	const isStandardEndpoint =
+		hostname === 'dohoo-upload-temp.s3.amazonaws.com' ||
+		hostname === 'dohoo-upload-temp.s3-accelerate.amazonaws.com' ||
+		dohooRegionalS3Pattern.test(hostname);
+	const isDualstackEndpoint =
+		dohooDualstackS3Pattern.test(hostname) ||
+		hostname === 'dohoo-upload-temp.s3-accelerate.dualstack.amazonaws.com';
+	if (!isStandardEndpoint && !isDualstackEndpoint) {
 		return { error: 'DOHOO returned an upload URL outside its approved AWS S3 bucket' };
 	}
 	return { url: parsed };

@@ -143,6 +143,8 @@ When **External URL** is selected, the n8n instance downloads that public HTTPS 
 
 Presigned uploads are accepted only over HTTPS for the DOHOO-owned `dohoo-upload-temp` AWS S3 bucket. The DOHOO API key is never sent to the presigned URL. The node does not read environment variables or local filesystem paths. Service-side retention and user controls are governed by the policies published by DOHOO.
 
+For DNS-resolution and DNS-rebinding protection on self-hosted n8n 2.12 or later, enable n8n's defense-in-depth layer with `N8N_SSRF_PROTECTION_ENABLED=true`. DOHOO also recommends `N8N_SSRF_BLOCKED_IP_RANGES=default,100.64.0.0/10`. Review the instance allowlists first if existing workflows intentionally access internal services.
+
 ## Compatibility
 
 This package targets n8n 2.x and requires Node.js 22.22.0 or newer. It is built and linted with the current `@n8n/node-cli` verification rules.

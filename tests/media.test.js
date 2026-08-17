@@ -200,6 +200,12 @@ test('allows only the DOHOO AWS S3 bucket for presigned uploads', () => {
 		/outside its approved AWS S3 bucket/,
 	);
 	assert.match(
+		validateDohooUploadUrl(
+			'https://dohoo-upload-temp.s3.attacker-controlled.amazonaws.com/upload',
+		).error,
+		/outside its approved AWS S3 bucket/,
+	);
+	assert.match(
 		validateDohooUploadUrl('http://dohoo-upload-temp.s3.amazonaws.com/upload').error,
 		/must use HTTPS/,
 	);

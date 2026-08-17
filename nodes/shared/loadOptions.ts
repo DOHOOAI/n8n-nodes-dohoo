@@ -1,6 +1,6 @@
 import type { IDataObject, ILoadOptionsFunctions, INodePropertyOptions } from 'n8n-workflow';
 
-import { dohooApiRequest, asDataObjectArray } from './transport';
+import { dohooApiRequest, asDataObject, asDataObjectArray } from './transport';
 
 function readConnections(payload: unknown): IDataObject[] {
 	if (Array.isArray(payload)) return asDataObjectArray(payload);
@@ -42,14 +42,15 @@ export async function getPinterestBoards(
 ): Promise<INodePropertyOptions[]> {
 	const connectionId = String(this.getNodeParameter('connectionId', ''));
 	if (!connectionId) return [];
-	const payload = await dohooApiRequest<IDataObject>(
+	const payload = await dohooApiRequest<unknown>(
 		this,
 		'GET',
 		`/api/v2/pinterest/boards/${encodeURIComponent(connectionId)}`,
 	);
-	const boards = Array.isArray(payload)
-		? asDataObjectArray(payload)
-		: asDataObjectArray(payload.boards);
+	const object = asDataObject(payload);
+	const data = asDataObject(object.data);
+	const boardsPayload = [payload, object.boards, object.data, data.boards].find(Array.isArray);
+	const boards = asDataObjectArray(boardsPayload);
 	return boards
 		.map((board) => ({
 			name: String(board.name ?? board.title ?? board.id ?? board.boardId),

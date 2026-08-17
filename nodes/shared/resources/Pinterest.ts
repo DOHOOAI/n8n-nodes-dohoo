@@ -52,7 +52,10 @@ export class PinterestResource {
 				displayName: 'Board Name or ID',
 				name: 'boardId',
 				type: 'options',
-				typeOptions: { loadOptionsMethod: 'getBoards' },
+				typeOptions: {
+					loadOptionsMethod: 'getBoards',
+					loadOptionsDependsOn: ['connectionId'],
+				},
 				default: '',
 				required: true,
 				displayOptions: { show: { operation: ['publish'] } },

@@ -1,0 +1,121 @@
+import type {
+	IDataObject,
+	IExecuteFunctions,
+	ILoadOptionsFunctions,
+	INodeExecutionData,
+	INodePropertyOptions,
+	INodeTypeDescription,
+} from 'n8n-workflow';
+import { NodeConnectionTypes } from 'n8n-workflow';
+
+import { PLATFORM_CODES, TEXT_LIMITS } from '../constants';
+import { executeForEachItem } from '../execution';
+import { createConnectionLoader } from '../loadOptions';
+import { resolveMediaUrl } from '../media';
+import {
+	connectionProperty,
+	mediaSourceProperties,
+	schedulingProperties,
+} from '../properties';
+import { addSchedule, publish } from '../publication';
+
+export class FacebookResource {
+	definition: INodeTypeDescription = {
+		displayName: 'DOHOO Facebook',
+		name: 'dohooFacebook',
+		icon: { light: 'file:../dohoo.svg', dark: 'file:../dohoo.dark.svg' },
+		...{ group: ['output'] },
+		version: 1,
+		subtitle: '={{$parameter["operation"]}}',
+		description: 'Publish or schedule Facebook content through DOHOO',
+		defaults: { name: 'DOHOO Facebook' },
+		inputs: [NodeConnectionTypes.Main],
+		outputs: [NodeConnectionTypes.Main],
+		usableAsTool: true,
+		credentials: [{ name: 'dohooApi', required: true }],
+		properties: [
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				options: [
+					{ name: 'Publish Post', value: 'publish', action: 'Publish a post' },
+					{ name: 'Publish Story', value: 'publishStory', action: 'Publish a story' },
+				],
+				default: 'publish',
+			},
+			connectionProperty('Facebook'),
+			...mediaSourceProperties({ operations: ['publish'], required: false }),
+			...mediaSourceProperties({ operations: ['publishStory'], required: true }),
+			{
+				displayName: 'Media Type',
+				name: 'mediaType',
+				type: 'options',
+				options: [
+					{ name: 'Photo', value: 'photo' },
+					{ name: 'Reel', value: 'reel' },
+					{ name: 'Text', value: 'text' },
+					{ name: 'Video', value: 'video' },
+				],
+				default: 'photo',
+				displayOptions: {
+					show: { operation: ['publish'] },
+					hide: { mediaSource: ['none'] },
+				},
+			},
+			{
+				displayName: 'Story Media Type',
+				name: 'storyMediaType',
+				type: 'options',
+				options: [
+					{ name: 'Photo', value: 'photo' },
+					{ name: 'Video', value: 'video' },
+				],
+				default: 'photo',
+				displayOptions: { show: { operation: ['publishStory'] } },
+			},
+			{
+				displayName: 'Caption',
+				name: 'caption',
+				type: 'string',
+				typeOptions: { rows: 5, maxValue: TEXT_LIMITS.facebookCaption },
+				default: '',
+				displayOptions: { show: { operation: ['publish'] } },
+			},
+			...schedulingProperties(['publish']),
+		],
+	};
+
+	methods = {
+		loadOptions: {
+			async getConnections(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return await createConnectionLoader(PLATFORM_CODES.facebook).call(this);
+			},
+		},
+	};
+
+	async run(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+		return await executeForEachItem(this, async (itemIndex) => {
+			const operation = String(this.getNodeParameter('operation', itemIndex));
+			const connectionId = String(this.getNodeParameter('connectionId', itemIndex));
+			const mediaUrl = await resolveMediaUrl(this, itemIndex);
+			if (operation === 'publishStory') {
+				return await publish(this, '/api/v1/facebook/publish/story', {
+					pageId: connectionId,
+					mediaUrl,
+					mediaType: String(this.getNodeParameter('storyMediaType', itemIndex)),
+				});
+			}
+
+			const body: IDataObject = {
+				facebookPageId: connectionId,
+				caption: String(this.getNodeParameter('caption', itemIndex, '')),
+				mediaType: mediaUrl ? String(this.getNodeParameter('mediaType', itemIndex)) : 'text',
+			};
+			if (mediaUrl) body.fileUrl = mediaUrl;
+			addSchedule(this, itemIndex, body);
+			return await publish(this, '/api/v2/facebook/publish', body);
+		});
+	}
+}

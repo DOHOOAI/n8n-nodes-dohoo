@@ -1,0 +1,21 @@
+dist/
+node_modules/
+
+# Local build and package artifacts
+*.tgz
+.DS_Store
+
+# Credentials and local environment files
+.env
+.env.*
+!.env.example
+.npmrc
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Local AI/development instructions are not part of the public package
+.agents/
+AGENTS.md
+CLAUDE.md

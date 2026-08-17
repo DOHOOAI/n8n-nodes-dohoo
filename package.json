@@ -1,0 +1,65 @@
+{
+	"name": "n8n-nodes-dohoo",
+	"version": "0.1.1",
+	"description": "Publish and schedule content to social media through the DOHOO API",
+	"license": "MIT",
+	"homepage": "https://dohoo.ai",
+	"keywords": [
+		"n8n-community-node-package",
+		"dohoo",
+		"social-media",
+		"publishing",
+		"scheduling"
+	],
+	"author": {
+		"name": "DOHOO",
+		"email": "hello@dohoo.ai"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/DOHOOAI/n8n-nodes-dohoo.git"
+	},
+	"bugs": {
+		"url": "https://github.com/DOHOOAI/n8n-nodes-dohoo/issues"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"engines": {
+		"node": ">=22.22.0"
+	},
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"dev": "n8n-node dev",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"test": "npm run build && npm run test:unit",
+		"test:unit": "node --test tests/*.test.js",
+		"release": "n8n-node release",
+		"prepublishOnly": "n8n-node prerelease"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"strict": true,
+		"credentials": [
+			"dist/credentials/DohooApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/Dohoo/Dohoo.node.js"
+		]
+	},
+	"devDependencies": {
+		"@n8n/node-cli": "*",
+		"eslint": "9.32.0",
+		"prettier": "3.6.2",
+		"release-it": "^19.0.4",
+		"typescript": "5.9.2"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}

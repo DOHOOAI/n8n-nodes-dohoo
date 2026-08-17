@@ -3,6 +3,7 @@ import { NodeOperationError, sleep } from 'n8n-workflow';
 
 import { DOHOO_MEDIA_PREFIX, DOHOO_UPLOAD_REDIRECT_PREFIX, MAX_UPLOAD_BYTES } from './constants';
 import { asDataObject, dohooApiRequest } from './transport';
+import { validateDohooUploadUrl, validatePublicExternalUrl } from './urlSecurity';
 
 interface UploadInput {
 	fileName: string;
@@ -110,18 +111,68 @@ async function externalUploadInput(
 	itemIndex: number,
 	url: string,
 ): Promise<UploadInput> {
-	const parsed = assertHttps(context, itemIndex, url);
-	const response = (await context.helpers.httpRequest({
-		url: parsed.toString(),
-		method: 'GET',
-		encoding: 'stream',
-		returnFullResponse: true,
-		maxRedirects: 5,
-		timeout: 120_000,
-	})) as IN8nHttpFullResponse;
+	let validation = validatePublicExternalUrl(url);
+	if (!validation.url) {
+		throw new NodeOperationError(
+			context.getNode(),
+			validation.error ?? 'The External URL is not allowed',
+			{ itemIndex },
+		);
+	}
+	let parsed = validation.url;
+
+	let response: IN8nHttpFullResponse | undefined;
+	for (let redirectCount = 0; redirectCount <= 5; redirectCount++) {
+		response = (await context.helpers.httpRequest({
+			url: parsed.toString(),
+			method: 'GET',
+			encoding: 'stream',
+			returnFullResponse: true,
+			disableFollowRedirect: true,
+			ignoreHttpStatusErrors: true,
+			timeout: 120_000,
+		})) as IN8nHttpFullResponse;
+		if (response.statusCode < 300 || response.statusCode >= 400) break;
+
+		const body = response.body as { destroy?: () => void } | undefined;
+		body?.destroy?.();
+		const location = response.headers.location;
+		if (typeof location !== 'string') {
+			throw new NodeOperationError(
+				context.getNode(),
+				'The External URL redirect did not include a destination',
+				{ itemIndex },
+			);
+		}
+		if (redirectCount === 5) {
+			throw new NodeOperationError(context.getNode(), 'The External URL redirected too many times', {
+				itemIndex,
+			});
+		}
+		validation = validatePublicExternalUrl(new URL(location, parsed).toString());
+		if (!validation.url) {
+			throw new NodeOperationError(
+				context.getNode(),
+				validation.error ?? 'The External URL redirect is not allowed',
+				{ itemIndex },
+			);
+		}
+		parsed = validation.url;
+	}
+	if (!response || response.statusCode < 200 || response.statusCode >= 300) {
+		const body = response?.body as { destroy?: () => void } | undefined;
+		body?.destroy?.();
+		throw new NodeOperationError(
+			context.getNode(),
+			`The External URL returned HTTP ${response?.statusCode ?? 'unknown'}`,
+			{ itemIndex },
+		);
+	}
 	const headerLength = response.headers['content-length'];
 	const fileSize = parseByteCount(headerLength);
 	if (fileSize === undefined) {
+		const body = response.body as { destroy?: () => void } | undefined;
+		body?.destroy?.();
 		throw new NodeOperationError(
 			context.getNode(),
 			'The external server did not provide Content-Length; download the file into n8n binary data first',
@@ -348,9 +399,18 @@ async function uploadToDohoo(
 			itemIndex,
 		});
 	}
+	const uploadValidation = validateDohooUploadUrl(uploadUrl);
+	if (!uploadValidation.url) {
+		throw new NodeOperationError(
+			context.getNode(),
+			uploadValidation.error ?? 'DOHOO returned an invalid upload URL',
+			{ itemIndex },
+		);
+	}
+	const approvedUploadUrl = uploadValidation.url;
 
 	await context.helpers.httpRequest({
-		url: uploadUrl,
+		url: approvedUploadUrl.toString(),
 		method: 'PUT',
 		headers: {
 			'Content-Length': input.fileSize,

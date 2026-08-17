@@ -139,7 +139,9 @@ Use **Raw** while diagnosing an API response. Use **Simplified** or **Selected F
 
 The node sends the DOHOO API key and operation parameters only to `https://dohoo.ai`. Media uploaded through the node is transferred to a DOHOO-issued presigned upload URL and stored in DOHOO media storage. When a publication is requested, DOHOO sends the selected content to the social account connected by the user.
 
-When **External URL** is selected, the n8n instance downloads that public HTTPS resource and uploads its bytes to DOHOO. The node does not read environment variables or local filesystem paths. Service-side retention and user controls are governed by the policies published by DOHOO.
+When **External URL** is selected, the n8n instance downloads that public HTTPS resource and uploads its bytes to DOHOO. Localhost, private, link-local, metadata, reserved IP, internal hostname, credential-bearing URLs, and redirects to those destinations are rejected. Requests also remain subject to the n8n instance's network-level SSRF protection.
+
+Presigned uploads are accepted only over HTTPS for the DOHOO-owned `dohoo-upload-temp` AWS S3 bucket. The DOHOO API key is never sent to the presigned URL. The node does not read environment variables or local filesystem paths. Service-side retention and user controls are governed by the policies published by DOHOO.
 
 ## Compatibility
 

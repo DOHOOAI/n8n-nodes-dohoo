@@ -9,4 +9,5 @@
 - Added binary, file-ID, canonical URL, and external HTTPS media sources.
 - Added canonical media URL resolution, scheduled-post listing, and video transcription.
 - Added response-shape normalization for Pinterest boards, media files, and scheduled posts.
+- Added SSRF protection for External URL downloads and an HTTPS/S3 allowlist for presigned uploads.
 - Added DOHOO API-key credentials, CI, tests, and npm provenance publishing workflow.

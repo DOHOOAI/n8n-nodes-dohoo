@@ -10,6 +10,7 @@ import { NodeConnectionTypes } from 'n8n-workflow';
 
 import { PLATFORM_CODES, TEXT_LIMITS } from '../constants';
 import { executeForEachItem } from '../execution';
+import { locatorValue } from '../locators';
 import { createConnectionLoader } from '../loadOptions';
 import { resolveMediaUrl } from '../media';
 import {
@@ -40,8 +41,18 @@ export class FacebookResource {
 				type: 'options',
 				noDataExpression: true,
 				options: [
-					{ name: 'Publish Post', value: 'publish', action: 'Publish a post' },
-					{ name: 'Publish Story', value: 'publishStory', action: 'Publish a story' },
+					{
+						name: 'Publish Post',
+						value: 'publish',
+						action: 'Publish post',
+						description: 'Publish text, an image, or a video to a Facebook page',
+					},
+					{
+						name: 'Publish Story',
+						value: 'publishStory',
+						action: 'Publish story',
+						description: 'Publish an image or video as a Facebook page story',
+					},
 				],
 				default: 'publish',
 			},
@@ -98,7 +109,7 @@ export class FacebookResource {
 	async run(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		return await executeForEachItem(this, async (itemIndex) => {
 			const operation = String(this.getNodeParameter('operation', itemIndex));
-			const connectionId = String(this.getNodeParameter('connectionId', itemIndex));
+			const connectionId = locatorValue(this.getNodeParameter('connectionId', itemIndex));
 			const mediaUrl = await resolveMediaUrl(this, itemIndex);
 			if (operation === 'publishStory') {
 				return await publish(this, '/api/v1/facebook/publish/story', {

@@ -10,7 +10,8 @@ import { NodeConnectionTypes } from 'n8n-workflow';
 
 import { PLATFORM_CODES, TEXT_LIMITS } from '../constants';
 import { executeForEachItem } from '../execution';
-import { createConnectionLoader, getPinterestBoards } from '../loadOptions';
+import { locatorValue } from '../locators';
+import { createConnectionLoader, getPinterestBoards, readPinterestBoards } from '../loadOptions';
 import { resolveMediaUrl } from '../media';
 import {
 	connectionProperty,
@@ -18,7 +19,7 @@ import {
 	schedulingProperties,
 } from '../properties';
 import { addSchedule, publish } from '../publication';
-import { asDataObject, asDataObjectArray, dohooApiRequest } from '../transport';
+import { dohooApiRequest } from '../transport';
 
 export class PinterestResource {
 	definition: INodeTypeDescription = {
@@ -41,26 +42,57 @@ export class PinterestResource {
 				type: 'options',
 				noDataExpression: true,
 				options: [
-					{ name: 'Publish Pin', value: 'publish', action: 'Publish a pin' },
-					{ name: 'List Boards', value: 'listBoards', action: 'List boards' },
-					{ name: 'Create Board', value: 'createBoard', action: 'Create a board' },
+					{
+						name: 'Publish Pin',
+						value: 'publish',
+						action: 'Publish pin',
+						description: 'Publish an image or video pin to a selected Pinterest board',
+					},
+					{
+						name: 'List Boards',
+						value: 'listBoards',
+						action: 'List boards',
+						description: 'Retrieve boards available to the selected Pinterest account',
+					},
+					{
+						name: 'Create Board',
+						value: 'createBoard',
+						action: 'Create board',
+						description: 'Create a public or secret board for the selected Pinterest account',
+					},
 				],
 				default: 'publish',
 			},
 			connectionProperty('Pinterest'),
 			{
-				displayName: 'Board Name or ID',
+				displayName: 'Board',
 				name: 'boardId',
-				type: 'options',
-				typeOptions: {
-					loadOptionsMethod: 'getBoards',
-					loadOptionsDependsOn: ['connectionId'],
-				},
-				default: '',
+				type: 'resourceLocator',
+				default: { mode: 'list', value: '' },
 				required: true,
+				typeOptions: {
+					loadOptionsDependsOn: ['connectionId.value'],
+				},
 				displayOptions: { show: { operation: ['publish'] } },
-				description:
-					'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+				description: 'Pinterest board where the pin will be published',
+				modes: [
+					{
+						displayName: 'From List',
+						name: 'list',
+						type: 'list',
+						placeholder: 'Select a board...',
+						typeOptions: {
+							searchListMethod: 'searchBoards',
+							searchable: true,
+						},
+					},
+					{
+						displayName: 'By ID',
+						name: 'id',
+						type: 'string',
+						placeholder: 'e.g. 1009721247645824856',
+					},
+				],
 			},
 			...mediaSourceProperties({ operations: ['publish'], required: true }),
 			{
@@ -138,16 +170,14 @@ export class PinterestResource {
 	async run(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		return await executeForEachItem(this, async (itemIndex) => {
 			const operation = String(this.getNodeParameter('operation', itemIndex));
-			const connectionId = String(this.getNodeParameter('connectionId', itemIndex));
+			const connectionId = locatorValue(this.getNodeParameter('connectionId', itemIndex));
 			if (operation === 'listBoards') {
-				const response = asDataObject(
-					await dohooApiRequest(
+				const response = await dohooApiRequest<unknown>(
 						this,
 						'GET',
 						`/api/v2/pinterest/boards/${encodeURIComponent(connectionId)}`,
-					),
 				);
-				return asDataObjectArray(response.boards);
+				return readPinterestBoards(response);
 			}
 			if (operation === 'createBoard') {
 				return await publish(this, `/api/v2/pinterest/boards/${encodeURIComponent(connectionId)}`, {
@@ -159,7 +189,7 @@ export class PinterestResource {
 
 			const body: IDataObject = {
 				connectionId,
-				boardId: String(this.getNodeParameter('boardId', itemIndex)),
+				boardId: locatorValue(this.getNodeParameter('boardId', itemIndex)),
 				fileUrl: await resolveMediaUrl(this, itemIndex),
 				title: String(this.getNodeParameter('title', itemIndex, '')),
 				description: String(this.getNodeParameter('description', itemIndex, '')),

@@ -10,6 +10,7 @@ import { NodeConnectionTypes } from 'n8n-workflow';
 
 import { PLATFORM_CODES, TEXT_LIMITS } from '../constants';
 import { executeForEachItem } from '../execution';
+import { locatorValue } from '../locators';
 import { createConnectionLoader } from '../loadOptions';
 import { resolveDohooMediaUrl, resolveMediaUrl } from '../media';
 import {
@@ -43,8 +44,18 @@ export class InstagramResource {
 				type: 'options',
 				noDataExpression: true,
 				options: [
-					{ name: 'Publish Media', value: 'publish', action: 'Publish media' },
-					{ name: 'Publish Carousel', value: 'publishCarousel', action: 'Publish a carousel' },
+					{
+						name: 'Publish Media',
+						value: 'publish',
+						action: 'Publish media',
+						description: 'Publish an image or video as an Instagram post, reel, or story',
+					},
+					{
+						name: 'Publish Carousel',
+						value: 'publishCarousel',
+						action: 'Publish carousel',
+						description: 'Publish two to ten images as an Instagram carousel',
+					},
 				],
 				default: 'publish',
 			},
@@ -103,7 +114,7 @@ export class InstagramResource {
 	async run(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		return await executeForEachItem(this, async (itemIndex) => {
 			const operation = String(this.getNodeParameter('operation', itemIndex));
-			const connectionId = String(this.getNodeParameter('connectionId', itemIndex));
+			const connectionId = locatorValue(this.getNodeParameter('connectionId', itemIndex));
 			const body: IDataObject = {
 				instagramAccountId: connectionId,
 				caption: String(this.getNodeParameter('caption', itemIndex, '')),

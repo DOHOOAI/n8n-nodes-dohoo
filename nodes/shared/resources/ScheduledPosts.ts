@@ -29,7 +29,14 @@ export class ScheduledPostsResource {
 				name: 'operation',
 				type: 'options',
 				noDataExpression: true,
-				options: [{ name: 'List Posts', value: 'list', action: 'List scheduled posts' }],
+				options: [
+					{
+						name: 'List Posts',
+						value: 'list',
+						action: 'List DOHOO scheduled posts',
+						description: 'Retrieve scheduled, published, or failed posts from DOHOO',
+					},
+				],
 				default: 'list',
 			},
 			{
@@ -77,7 +84,7 @@ export class ScheduledPostsResource {
 				name: 'platform',
 				type: 'string',
 				default: '',
-				placeholder: 'instagram',
+				placeholder: 'e.g. instagram',
 			},
 			{
 				displayName: 'Limit',
@@ -112,10 +119,17 @@ export class ScheduledPostsResource {
 				qs.from = String(this.getNodeParameter('from', itemIndex)).slice(0, 10);
 				qs.to = String(this.getNodeParameter('to', itemIndex)).slice(0, 10);
 			}
-			const response = asDataObject(
-				await dohooApiRequest(this, 'GET', '/api/scheduled-posts', undefined, qs),
+			const payload = await dohooApiRequest<unknown>(
+				this,
+				'GET',
+				'/api/scheduled-posts',
+				undefined,
+				qs,
 			);
-			return asDataObjectArray(response.posts);
+			const response = asDataObject(payload);
+			const data = asDataObject(response.data);
+			const postsPayload = [payload, response.posts, response.data, data.posts].find(Array.isArray);
+			return asDataObjectArray(postsPayload);
 		});
 	}
 }

@@ -10,6 +10,7 @@ import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import { PLATFORM_CODES, TEXT_LIMITS } from '../constants';
 import { executeForEachItem } from '../execution';
+import { locatorValue } from '../locators';
 import { createConnectionLoader } from '../loadOptions';
 import { resolveDohooMediaUrl, resolveMediaUrl } from '../media';
 import { connectionProperty, mediaSourceProperties } from '../properties';
@@ -36,8 +37,18 @@ export class YouTubeResource {
 				type: 'options',
 				noDataExpression: true,
 				options: [
-					{ name: 'Publish Video', value: 'publish', action: 'Publish a video' },
-					{ name: 'Set Thumbnail', value: 'setThumbnail', action: 'Set a video thumbnail' },
+					{
+						name: 'Publish Video',
+						value: 'publish',
+						action: 'Publish video',
+						description: 'Upload and optionally schedule a video for a YouTube channel',
+					},
+					{
+						name: 'Set Thumbnail',
+						value: 'setThumbnail',
+						action: 'Set video thumbnail',
+						description: 'Set a completed DOHOO image as the thumbnail for a YouTube video',
+					},
 				],
 				default: 'publish',
 			},
@@ -77,7 +88,7 @@ export class YouTubeResource {
 				name: 'tags',
 				type: 'string',
 				default: '',
-				placeholder: 'automation, tutorial, dohoo',
+				placeholder: 'e.g. automation, tutorial, dohoo',
 				description: 'Comma-separated YouTube tags',
 				displayOptions: { show: { operation: ['publish'] } },
 			},
@@ -163,7 +174,7 @@ export class YouTubeResource {
 	async run(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		return await executeForEachItem(this, async (itemIndex) => {
 			const operation = String(this.getNodeParameter('operation', itemIndex));
-			const connectionId = String(this.getNodeParameter('connectionId', itemIndex));
+			const connectionId = locatorValue(this.getNodeParameter('connectionId', itemIndex));
 			if (operation === 'setThumbnail') {
 				const videoId = encodeURIComponent(String(this.getNodeParameter('videoId', itemIndex)));
 				const thumbnailUrl = await resolveDohooMediaUrl(

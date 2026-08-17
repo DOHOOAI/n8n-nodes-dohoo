@@ -2,14 +2,39 @@ import type { INodeProperties } from 'n8n-workflow';
 
 export function connectionProperty(label: string): INodeProperties {
 	return {
-		displayName: `${label} Account Name or ID`,
+		displayName: `${label} Account`,
 		name: 'connectionId',
-		type: 'options',
-		typeOptions: { loadOptionsMethod: 'getConnections' },
-		default: '',
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		description:
-			'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+		description: `${label} account connected to DOHOO`,
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				placeholder: `Select a ${label} account...`,
+				typeOptions: {
+					searchListMethod: 'searchConnections',
+					searchable: true,
+				},
+			},
+			{
+				displayName: 'By ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 928',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '.+',
+							errorMessage: 'Enter a valid DOHOO connection ID',
+						},
+					},
+				],
+			},
+		],
 	};
 }
 
@@ -78,7 +103,7 @@ export function mediaSourceProperties(options: {
 			type: 'string',
 			default: '',
 			required: true,
-			placeholder: 'https://mediastorage.dohoo.ai/file/dohoo-video-storage/example.mp4',
+			placeholder: 'e.g. https://mediastorage.dohoo.ai/file/dohoo-video-storage/example.mp4',
 			displayOptions: {
 				show: { ...visibleForOperations, mediaSource: ['dohooUrl'] },
 			},
@@ -90,7 +115,7 @@ export function mediaSourceProperties(options: {
 			type: 'string',
 			default: '',
 			required: true,
-			placeholder: 'https://example.com/video.mp4',
+			placeholder: 'e.g. https://example.com/video.mp4',
 			displayOptions: {
 				show: { ...visibleForOperations, mediaSource: ['externalUrl'] },
 			},
@@ -130,7 +155,7 @@ export function schedulingProperties(operations: string[]): INodeProperties[] {
 			type: 'string',
 			default: 'UTC',
 			required: true,
-			placeholder: 'Europe/Kiev',
+			placeholder: 'e.g. Europe/Kiev',
 			displayOptions: {
 				show: { operation: operations, publishMode: ['schedule'] },
 			},
@@ -166,7 +191,7 @@ export function fixedMediaUrlsProperty(options: {
 						type: 'string',
 						default: '',
 						required: true,
-						placeholder: 'https://mediastorage.dohoo.ai/file/dohoo-video-storage/image.jpg',
+						placeholder: 'e.g. https://mediastorage.dohoo.ai/file/dohoo-video-storage/image.jpg',
 						description: `Public HTTPS URL (${options.minimum}–${options.maximum} items total)`,
 					},
 				],

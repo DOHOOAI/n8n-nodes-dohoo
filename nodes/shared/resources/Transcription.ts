@@ -31,7 +31,14 @@ export class TranscriptionResource {
 				name: 'operation',
 				type: 'options',
 				noDataExpression: true,
-				options: [{ name: 'Transcribe Video', value: 'transcribe', action: 'Transcribe a video' }],
+				options: [
+					{
+						name: 'Transcribe Video',
+						value: 'transcribe',
+						action: 'Transcribe DOHOO video',
+						description: 'Convert speech in a DOHOO media-library video into text',
+					},
+				],
 				default: 'transcribe',
 			},
 			{
@@ -47,7 +54,7 @@ export class TranscriptionResource {
 				name: 'language',
 				type: 'string',
 				default: '',
-				placeholder: 'ru',
+				placeholder: 'e.g. ru',
 				description:
 					'Optional two-letter ISO-639-1 language code; leave empty for automatic detection',
 			},

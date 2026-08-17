@@ -10,6 +10,7 @@ import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import { PLATFORM_CODES, TEXT_LIMITS } from '../constants';
 import { executeForEachItem } from '../execution';
+import { locatorValue } from '../locators';
 import { createConnectionLoader } from '../loadOptions';
 import { resolveMediaUrl } from '../media';
 import {
@@ -39,7 +40,14 @@ export class XResource {
 				name: 'operation',
 				type: 'options',
 				noDataExpression: true,
-				options: [{ name: 'Publish Post', value: 'publish', action: 'Publish a post' }],
+				options: [
+					{
+						name: 'Publish Post',
+						value: 'publish',
+						action: 'Publish X post',
+						description: 'Publish text with optional image or video media to X',
+					},
+				],
 				default: 'publish',
 			},
 			connectionProperty('X'),
@@ -83,7 +91,7 @@ export class XResource {
 				throw new NodeOperationError(this.getNode(), 'Provide text, media, or both', { itemIndex });
 			}
 			const body: IDataObject = {
-				connectionId: String(this.getNodeParameter('connectionId', itemIndex)),
+				connectionId: locatorValue(this.getNodeParameter('connectionId', itemIndex)),
 			};
 			if (text) body.text = text;
 			if (mediaUrl) {

@@ -1,14 +1,19 @@
-import type { IDataObject, ILoadOptionsFunctions, INodePropertyOptions } from 'n8n-workflow';
+import type {
+	IDataObject,
+	ILoadOptionsFunctions,
+	INodeListSearchResult,
+	INodePropertyOptions,
+} from 'n8n-workflow';
 
+import { locatorValue } from './locators';
 import { dohooApiRequest, asDataObject, asDataObjectArray } from './transport';
 
 function readConnections(payload: unknown): IDataObject[] {
 	if (Array.isArray(payload)) return asDataObjectArray(payload);
-	if (payload !== null && typeof payload === 'object') {
-		const object = payload as IDataObject;
-		return asDataObjectArray(object.connections ?? object.data);
-	}
-	return [];
+	const object = asDataObject(payload);
+	const data = asDataObject(object.data);
+	const connectionsPayload = [object.connections, object.data, data.connections].find(Array.isArray);
+	return asDataObjectArray(connectionsPayload);
 }
 
 export function createConnectionLoader(allowedPlatforms: readonly string[]) {
@@ -37,24 +42,56 @@ export function createConnectionLoader(allowedPlatforms: readonly string[]) {
 	};
 }
 
+export function createConnectionSearch(allowedPlatforms: readonly string[]) {
+	return async function searchConnections(
+		this: ILoadOptionsFunctions,
+		filter?: string,
+	): Promise<INodeListSearchResult> {
+		const normalizedFilter = filter?.trim().toLowerCase() ?? '';
+		const options = await createConnectionLoader(allowedPlatforms).call(this);
+		return {
+			results: options
+				.filter((option) => !normalizedFilter || option.name.toLowerCase().includes(normalizedFilter))
+				.map((option) => ({ name: option.name, value: String(option.value) })),
+		};
+	};
+}
+
+export function readPinterestBoards(payload: unknown): IDataObject[] {
+	if (Array.isArray(payload)) return asDataObjectArray(payload);
+	const object = asDataObject(payload);
+	const data = asDataObject(object.data);
+	const boardsPayload = [object.boards, object.data, data.boards].find(Array.isArray);
+	return asDataObjectArray(boardsPayload);
+}
+
 export async function getPinterestBoards(
 	this: ILoadOptionsFunctions,
 ): Promise<INodePropertyOptions[]> {
-	const connectionId = String(this.getNodeParameter('connectionId', ''));
+	const connectionId = locatorValue(this.getNodeParameter('connectionId', ''));
 	if (!connectionId) return [];
 	const payload = await dohooApiRequest<unknown>(
 		this,
 		'GET',
 		`/api/v2/pinterest/boards/${encodeURIComponent(connectionId)}`,
 	);
-	const object = asDataObject(payload);
-	const data = asDataObject(object.data);
-	const boardsPayload = [payload, object.boards, object.data, data.boards].find(Array.isArray);
-	const boards = asDataObjectArray(boardsPayload);
-	return boards
+	return readPinterestBoards(payload)
 		.map((board) => ({
 			name: String(board.name ?? board.title ?? board.id ?? board.boardId),
 			value: String(board.boardId ?? board.id),
 		}))
 		.filter((option) => option.value !== 'undefined');
+}
+
+export async function searchPinterestBoards(
+	this: ILoadOptionsFunctions,
+	filter?: string,
+): Promise<INodeListSearchResult> {
+	const normalizedFilter = filter?.trim().toLowerCase() ?? '';
+	const options = await getPinterestBoards.call(this);
+	return {
+		results: options
+			.filter((option) => !normalizedFilter || option.name.toLowerCase().includes(normalizedFilter))
+			.map((option) => ({ name: option.name, value: String(option.value) })),
+	};
 }

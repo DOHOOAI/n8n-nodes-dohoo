@@ -177,8 +177,8 @@ const nodeCases = [
 		resource: 'pinterest',
 		params: {
 			operation: 'publish',
-			connectionId: 'pinterest-1',
-			boardId: 'board-1',
+			connectionId: { mode: 'list', value: 'pinterest-1' },
+			boardId: { mode: 'list', value: 'board-1' },
 			mediaSource: 'dohooUrl',
 			mediaUrl: imageUrl,
 			title: 'Contract test',
@@ -189,6 +189,8 @@ const nodeCases = [
 		},
 		path: '/api/v2/pinterest/publish',
 		checkBody: (body) => {
+			assert.equal(body.connectionId, 'pinterest-1');
+			assert.equal(body.boardId, 'board-1');
 			assert.equal(body.fileUrl, imageUrl);
 			assert.equal(body.description, 'Description must be preserved #n8n');
 		},
@@ -228,8 +230,11 @@ function makeContext(params, apiReply) {
 	const publicCalls = [];
 	const context = {
 		getInputData: () => [{ json: {} }],
-		getNodeParameter: (name, _itemIndex, defaultValue) =>
-			Object.hasOwn(params, name) ? params[name] : defaultValue,
+		getNodeParameter: (name, _itemIndex, defaultValue) => {
+			if (Object.hasOwn(params, name)) return params[name];
+			if (name === 'output') return 'raw';
+			return defaultValue;
+		},
 		getNode: () => ({
 			name: 'DOHOO Contract Test',
 			type: 'n8n-nodes-dohoo.contractTest',
@@ -300,6 +305,22 @@ test('Pinterest board operations use connection-scoped endpoints', async () => {
 	assert.equal(create.apiCalls[0].body.privacy, 'SECRET');
 });
 
+for (const [shape, response] of [
+	['root array', [{ id: 'root-board', name: 'Root board' }]],
+	['data wrapper', { data: [{ id: 'data-board', name: 'Data board' }] }],
+	['nested data wrapper', { data: { boards: [{ id: 'nested-board', name: 'Nested board' }] } }],
+]) {
+	test(`Pinterest List Boards supports the ${shape} response`, async () => {
+		const list = makeContext(
+			{ resource: 'pinterest', operation: 'listBoards', connectionId: 'pin-1' },
+			async () => response,
+		);
+		const output = await new Dohoo().execute.call(list.context);
+		assert.equal(output[0].length, 1);
+		assert.ok(output[0][0].json.id);
+	});
+}
+
 test('Media read operations normalize live response shapes', async () => {
 	const latest = makeContext({ resource: 'media', operation: 'getLatest' }, async () => ({
 		success: true,
@@ -331,6 +352,21 @@ test('Media read operations normalize live response shapes', async () => {
 		status: 'completed',
 	});
 	assert.equal(listOutput[0][0].json.fileUrl, imageUrl);
+
+	const nestedList = makeContext(
+		{
+			resource: 'media',
+			operation: 'list',
+			page: 1,
+			pageSize: 10,
+			search: '',
+			mimeType: '',
+			status: '',
+		},
+		async () => ({ data: { files: [{ id: 46, status: 'completed', url: imageUrl }] } }),
+	);
+	const nestedListOutput = await new Dohoo().execute.call(nestedList.context);
+	assert.equal(nestedListOutput[0][0].json.fileUrl, imageUrl);
 
 	const status = makeContext(
 		{ resource: 'media', operation: 'getStatus', targetFileId: 44 },
@@ -395,6 +431,74 @@ test('Scheduled Posts sends filters as query parameters', async () => {
 	});
 });
 
+test('Scheduled Posts supports a data-wrapped response', async () => {
+	const { context } = makeContext(
+		{
+			resource: 'scheduledPosts',
+			operation: 'list',
+			period: 'week',
+			status: 'pending',
+			platform: '',
+			limit: 10,
+			offset: 0,
+		},
+		async () => ({ data: { posts: [{ id: 'scheduled-1', status: 'pending' }] } }),
+	);
+	const output = await new Dohoo().execute.call(context);
+	assert.equal(output[0][0].json.id, 'scheduled-1');
+});
+
+test('Output modes simplify or select fields without losing an available ID', async () => {
+	const rawReply = {
+		success: true,
+		message: 'Created',
+		result: {
+			id: 'post-1',
+			status: 'published',
+			url: 'https://example.com/post-1',
+			extraOne: 1,
+			extraTwo: 2,
+			extraThree: 3,
+			extraFour: 4,
+			extraFive: 5,
+			extraSix: 6,
+			extraSeven: 7,
+			extraEight: 8,
+		},
+	};
+	const simplified = makeContext(
+		{
+			resource: 'facebook',
+			operation: 'publish',
+			connectionId: 'facebook-1',
+			mediaSource: 'none',
+			caption: 'Test',
+			publishMode: 'now',
+			output: 'simplified',
+		},
+		async () => rawReply,
+	);
+	const simplifiedOutput = await new Dohoo().execute.call(simplified.context);
+	assert.ok(Object.keys(simplifiedOutput[0][0].json).length <= 10);
+	assert.equal(simplifiedOutput[0][0].json.id, 'post-1');
+
+	const selected = makeContext(
+		{
+			resource: 'facebook',
+			operation: 'publish',
+			connectionId: 'facebook-1',
+			mediaSource: 'none',
+			caption: 'Test',
+			publishMode: 'now',
+			output: 'selected',
+			selectedFields: ['status'],
+		},
+		async () => rawReply,
+	);
+	const selectedOutput = await new Dohoo().execute.call(selected.context);
+	assert.deepEqual(selectedOutput[0][0].json, { id: 'post-1', status: 'published' });
+});
+
 test('all 21 visible operations are covered by the package descriptors', () => {
 	const expected = new Map([
 		['instagram', ['publish', 'publishCarousel']],
@@ -429,10 +533,24 @@ test('all 21 visible operations are covered by the package descriptors', () => {
 
 test('the unified node scopes every operation field to exactly one resource', () => {
 	const properties = new Dohoo().description.properties;
-	for (const property of properties.filter((candidate) => candidate.name !== 'resource')) {
+	for (const property of properties.filter(
+		(candidate) => !['resource', 'output', 'selectedFields'].includes(candidate.name),
+	)) {
 		const resources = property.displayOptions?.show?.resource;
 		assert.ok(resources, `${property.displayName} is missing a resource visibility condition`);
 		assert.equal(resources.length, 1);
+	}
+});
+
+test('all operations include action and description metadata', () => {
+	const operationProperties = new Dohoo().description.properties.filter(
+		(property) => property.name === 'operation',
+	);
+	for (const property of operationProperties) {
+		for (const option of property.options) {
+			assert.ok(option.action, `${option.name} is missing action metadata`);
+			assert.ok(option.description, `${option.name} is missing description metadata`);
+		}
 	}
 });
 
@@ -455,4 +573,6 @@ test('the unified connection loader filters accounts for the selected resource',
 	};
 	const options = await new Dohoo().methods.loadOptions.getConnections.call(context);
 	assert.deepEqual(options, [{ name: 'instagram-test', value: '1' }]);
+	const search = await new Dohoo().methods.listSearch.searchConnections.call(context, 'gram');
+	assert.deepEqual(search, { results: [{ name: 'instagram-test', value: '1' }] });
 });

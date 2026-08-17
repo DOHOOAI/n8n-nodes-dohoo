@@ -32,11 +32,36 @@ export class MediaResource {
 				type: 'options',
 				noDataExpression: true,
 				options: [
-					{ name: 'Get File URL', value: 'getUrl', action: 'Get a file URL' },
-					{ name: 'Get Latest File', value: 'getLatest', action: 'Get the latest file' },
-					{ name: 'Get Upload Status', value: 'getStatus', action: 'Get upload status' },
-					{ name: 'List Files', value: 'list', action: 'List files' },
-					{ name: 'Upload File', value: 'upload', action: 'Upload a file' },
+					{
+						name: 'Get File URL',
+						value: 'getUrl',
+						action: 'Get DOHOO file URL',
+						description: 'Resolve a completed DOHOO file to its canonical public URL',
+					},
+					{
+						name: 'Get Latest File',
+						value: 'getLatest',
+						action: 'Get latest DOHOO file',
+						description: 'Retrieve the most recently uploaded file from DOHOO media storage',
+					},
+					{
+						name: 'Get Upload Status',
+						value: 'getStatus',
+						action: 'Get DOHOO upload status',
+						description: 'Retrieve processing status and metadata for a DOHOO file',
+					},
+					{
+						name: 'List Files',
+						value: 'list',
+						action: 'List DOHOO files',
+						description: 'Retrieve files from the DOHOO media library using optional filters',
+					},
+					{
+						name: 'Upload File',
+						value: 'upload',
+						action: 'Upload DOHOO file',
+						description: 'Upload binary data or copy a public HTTPS file into DOHOO',
+					},
 				],
 				default: 'upload',
 			},
@@ -63,7 +88,7 @@ export class MediaResource {
 				name: 'mimeType',
 				type: 'string',
 				default: '',
-				placeholder: 'image/',
+				placeholder: 'e.g. image/',
 				displayOptions: { show: { operation: ['list'] } },
 			},
 			{
@@ -117,11 +142,18 @@ export class MediaResource {
 					const value = String(this.getNodeParameter(name, itemIndex, ''));
 					if (value) qs[name] = value;
 				}
-				const response = asDataObject(
-					await dohooApiRequest(this, 'GET', '/api/upload/files/search', undefined, qs),
+				const payload = await dohooApiRequest<unknown>(
+					this,
+					'GET',
+					'/api/upload/files/search',
+					undefined,
+					qs,
 				);
+				const response = asDataObject(payload);
+				const data = asDataObject(response.data);
+				const filesPayload = [payload, response.files, response.data, data.files].find(Array.isArray);
 				return await Promise.all(
-					asDataObjectArray(response.files).map(
+					asDataObjectArray(filesPayload).map(
 						async (file) => await normalizeFileForOutput(this, itemIndex, file),
 					),
 				);

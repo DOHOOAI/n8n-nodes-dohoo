@@ -10,6 +10,7 @@ import { NodeConnectionTypes } from 'n8n-workflow';
 
 import { PLATFORM_CODES, TEXT_LIMITS } from '../constants';
 import { executeForEachItem } from '../execution';
+import { locatorValue } from '../locators';
 import { createConnectionLoader } from '../loadOptions';
 import { resolveDohooMediaUrl, resolveMediaUrl } from '../media';
 import {
@@ -53,11 +54,17 @@ export class TikTokResource {
 				type: 'options',
 				noDataExpression: true,
 				options: [
-					{ name: 'Publish Video', value: 'publishVideo', action: 'Publish a video' },
+					{
+						name: 'Publish Video',
+						value: 'publishVideo',
+						action: 'Publish video',
+						description: 'Publish or send a video to drafts for the selected TikTok account',
+					},
 					{
 						name: 'Publish Photo Carousel',
 						value: 'publishCarousel',
-						action: 'Publish a photo carousel',
+						action: 'Publish photo carousel',
+						description: 'Publish two to thirty-five images as a TikTok photo carousel',
 					},
 				],
 				default: 'publishVideo',
@@ -154,7 +161,7 @@ export class TikTokResource {
 	async run(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		return await executeForEachItem(this, async (itemIndex) => {
 			const operation = String(this.getNodeParameter('operation', itemIndex));
-			const connectionId = String(this.getNodeParameter('connectionId', itemIndex));
+			const connectionId = locatorValue(this.getNodeParameter('connectionId', itemIndex));
 			const description = String(this.getNodeParameter('description', itemIndex));
 			const visibility = String(this.getNodeParameter('visibility', itemIndex));
 

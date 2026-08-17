@@ -9,8 +9,12 @@ The n8n node picker shows one **DOHOO** node. Inside it, select a resource such 
 - [Installation](#installation)
 - [Operations](#operations)
 - [Credentials](#credentials)
+- [Quick start](#quick-start)
+- [Example workflows](#example-workflows)
 - [Media workflow](#media-workflow)
 - [Scheduling](#scheduling)
+- [Output modes](#output-modes)
+- [Data handling](#data-handling)
 - [Compatibility](#compatibility)
 - [Resources](#resources)
 - [Version history](#version-history)
@@ -46,6 +50,54 @@ The credential check calls `GET https://dohoo.ai/api/auth/me`. An invalid key re
 
 The API key is stored as an n8n password credential and is sent only in the `X-API-Key` header to `https://dohoo.ai`.
 
+## Quick start
+
+1. Add a **DOHOO** node to a workflow.
+2. Create or select a **DOHOO API** credential.
+3. Select a resource and operation.
+4. For a social publication, choose the connected account **From List** or select **By ID** and enter its DOHOO connection ID.
+5. Choose a media source, configure the publication fields, and execute the node.
+
+Pinterest boards use the same list-first locator. If an account or board is temporarily unavailable from the API, switch the locator to **By ID** instead of using an expression to bypass an empty dropdown.
+
+## Example workflows
+
+### Upload binary data and publish it to Instagram
+
+1. Use any n8n node that returns an image or video in the binary field `data`.
+2. Add **DOHOO → Media → Upload File**.
+3. Select **Input Data Field** and keep **Input Data Field Name** set to `data`.
+4. Map the returned `fileUrl` into **DOHOO → Instagram → Publish Media** by selecting **DOHOO Media URL**.
+5. Select the Instagram account, media type, content type, and caption.
+
+The separate upload step is useful when the same completed DOHOO file will be published more than once. A publication operation can also upload binary data directly.
+
+### Schedule a YouTube video
+
+1. Add **DOHOO → YouTube → Publish Video**.
+2. Select the YouTube account and a video source.
+3. Enter the title, description, visibility, tags, and category.
+4. Select **DOHOO Schedule** or **YouTube Native Schedule**.
+5. Enter a future date. For DOHOO scheduling, also enter an IANA timezone such as `Europe/Kiev`.
+
+YouTube-native scheduling requires the video visibility to be **Private**.
+
+### Publish a Pinterest pin
+
+1. Add **DOHOO → Pinterest → Publish Pin**.
+2. Select the Pinterest account, then select a board from the dependent board locator.
+3. Choose the media source and enter the title, description, destination link, and alt text.
+4. Publish immediately or select **Schedule**.
+
+### Transcribe a completed video
+
+1. Add **DOHOO → Transcription → Transcribe Video**.
+2. Select **DOHOO File ID** or **DOHOO Media URL** for an existing completed video, or provide binary data for a new upload.
+3. Optionally enter a two-letter ISO-639-1 language code such as `en`, `ru`, or `uk`.
+4. Execute the node and use the returned transcript in later workflow steps.
+
+Transcription consumes the allowance of the connected DOHOO subscription.
+
 ## Media workflow
 
 Publication resources accept one of these media sources:
@@ -73,6 +125,22 @@ YouTube also supports native scheduling. Native scheduling uploads immediately a
 
 Do not automatically retry a failed publication: the social network may have accepted the first request even if the response was interrupted. Inspect the DOHOO scheduled-post result or platform account before retrying.
 
+## Output modes
+
+Every operation provides three output modes:
+
+- **Simplified** returns up to ten commonly useful fields and is the default for compact AI-tool output.
+- **Raw** returns the complete DOHOO response.
+- **Selected Fields** returns only the selected fields while retaining an available entity ID.
+
+Use **Raw** while diagnosing an API response. Use **Simplified** or **Selected Fields** when the node is connected to an AI Agent to avoid unnecessary context usage.
+
+## Data handling
+
+The node sends the DOHOO API key and operation parameters only to `https://dohoo.ai`. Media uploaded through the node is transferred to a DOHOO-issued presigned upload URL and stored in DOHOO media storage. When a publication is requested, DOHOO sends the selected content to the social account connected by the user.
+
+When **External URL** is selected, the n8n instance downloads that public HTTPS resource and uploads its bytes to DOHOO. The node does not read environment variables or local filesystem paths. Service-side retention and user controls are governed by the policies published by DOHOO.
+
 ## Compatibility
 
 This package targets n8n 2.x and requires Node.js 22.22.0 or newer. It is built and linted with the current `@n8n/node-cli` verification rules.
@@ -80,10 +148,10 @@ This package targets n8n 2.x and requires Node.js 22.22.0 or newer. It is built 
 ## Resources
 
 - [DOHOO](https://dohoo.ai)
+- [DOHOO Developer API](https://dohoo.ai/developers)
 - [n8n community nodes documentation](https://docs.n8n.io/integrations/#community-nodes)
 - [Issue tracker](https://github.com/DOHOOAI/n8n-nodes-dohoo/issues)
 
 ## Version history
 
-- `0.1.1` — unified all capabilities under one DOHOO node with resource and operation selectors.
-- `0.1.0` — initial development release with separate platform, media, schedule, and transcription nodes.
+- `0.2.0` — initial public candidate with one unified DOHOO node, list-first resource locators, compact output modes, canonical media handling, scheduling, and transcription.

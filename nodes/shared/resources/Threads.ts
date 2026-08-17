@@ -10,6 +10,7 @@ import { NodeConnectionTypes } from 'n8n-workflow';
 
 import { PLATFORM_CODES, TEXT_LIMITS } from '../constants';
 import { executeForEachItem } from '../execution';
+import { locatorValue } from '../locators';
 import { createConnectionLoader } from '../loadOptions';
 import { resolveMediaUrl } from '../media';
 import {
@@ -39,7 +40,14 @@ export class ThreadsResource {
 				name: 'operation',
 				type: 'options',
 				noDataExpression: true,
-				options: [{ name: 'Publish Post', value: 'publish', action: 'Publish a post' }],
+				options: [
+					{
+						name: 'Publish Post',
+						value: 'publish',
+						action: 'Publish post',
+						description: 'Publish text with optional image or video media to Threads',
+					},
+				],
 				default: 'publish',
 			},
 			connectionProperty('Threads'),
@@ -79,7 +87,7 @@ export class ThreadsResource {
 		return await executeForEachItem(this, async (itemIndex) => {
 			const mediaUrl = await resolveMediaUrl(this, itemIndex);
 			const body: IDataObject = {
-				connectionId: String(this.getNodeParameter('connectionId', itemIndex)),
+				connectionId: locatorValue(this.getNodeParameter('connectionId', itemIndex)),
 				text: String(this.getNodeParameter('text', itemIndex)),
 				mediaType: mediaUrl ? String(this.getNodeParameter('mediaType', itemIndex)) : 'text',
 			};

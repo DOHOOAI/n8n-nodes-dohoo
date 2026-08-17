@@ -12,6 +12,9 @@
 		"primaryDocumentation": [
 			{
 				"url": "https://github.com/DOHOOAI/n8n-nodes-dohoo#operations"
+			},
+			{
+				"url": "https://dohoo.ai/developers"
 			}
 		]
 	}

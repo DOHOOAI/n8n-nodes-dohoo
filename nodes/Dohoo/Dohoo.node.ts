@@ -1,6 +1,7 @@
 import type {
 	IExecuteFunctions,
 	ILoadOptionsFunctions,
+	INodeListSearchResult,
 	INodeExecutionData,
 	INodeProperties,
 	INodePropertyOptions,
@@ -10,7 +11,13 @@ import type {
 import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import { PLATFORM_CODES } from '../shared/constants';
-import { createConnectionLoader, getPinterestBoards } from '../shared/loadOptions';
+import {
+	createConnectionLoader,
+	createConnectionSearch,
+	getPinterestBoards,
+	searchPinterestBoards,
+} from '../shared/loadOptions';
+import { applyOutputMode, outputProperties } from '../shared/output';
 import { FacebookResource } from '../shared/resources/Facebook';
 import { InstagramResource } from '../shared/resources/Instagram';
 import { LinkedInResource } from '../shared/resources/LinkedIn';
@@ -118,6 +125,7 @@ export class Dohoo implements INodeType {
 			...scopeProperties('transcription'),
 			...scopeProperties('x'),
 			...scopeProperties('youtube'),
+			...outputProperties,
 		],
 	};
 
@@ -134,6 +142,24 @@ export class Dohoo implements INodeType {
 				return await getPinterestBoards.call(this);
 			},
 		},
+		listSearch: {
+			async searchConnections(
+				this: ILoadOptionsFunctions,
+				filter?: string,
+			): Promise<INodeListSearchResult> {
+				const resource = String(this.getNodeParameter('resource', ''));
+				if (!isDohooResource(resource)) return { results: [] };
+				const platforms = platformsByResource[resource];
+				if (!platforms) return { results: [] };
+				return await createConnectionSearch(platforms).call(this, filter);
+			},
+			async searchBoards(
+				this: ILoadOptionsFunctions,
+				filter?: string,
+			): Promise<INodeListSearchResult> {
+				return await searchPinterestBoards.call(this, filter);
+			},
+		},
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
@@ -141,6 +167,6 @@ export class Dohoo implements INodeType {
 		if (!isDohooResource(resource)) {
 			throw new NodeOperationError(this.getNode(), `Unsupported DOHOO resource: ${resource}`);
 		}
-		return await resourceNodes[resource].run.call(this);
+		return applyOutputMode(this, await resourceNodes[resource].run.call(this));
 	}
 }

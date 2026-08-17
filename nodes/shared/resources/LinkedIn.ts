@@ -44,7 +44,7 @@ export class LinkedInResource {
 					{
 						name: 'Publish Post',
 						value: 'publish',
-						action: 'Publish post',
+						action: 'Publish linked in post',
 						description: 'Publish text or media to a LinkedIn profile or organization',
 					},
 				],

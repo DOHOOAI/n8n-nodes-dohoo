@@ -47,13 +47,13 @@ export class InstagramResource {
 					{
 						name: 'Publish Media',
 						value: 'publish',
-						action: 'Publish media',
+						action: 'Publish instagram media',
 						description: 'Publish an image or video as an Instagram post, reel, or story',
 					},
 					{
 						name: 'Publish Carousel',
 						value: 'publishCarousel',
-						action: 'Publish carousel',
+						action: 'Publish instagram carousel',
 						description: 'Publish two to ten images as an Instagram carousel',
 					},
 				],

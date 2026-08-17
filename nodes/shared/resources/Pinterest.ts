@@ -45,19 +45,19 @@ export class PinterestResource {
 					{
 						name: 'Publish Pin',
 						value: 'publish',
-						action: 'Publish pin',
+						action: 'Publish pinterest pin',
 						description: 'Publish an image or video pin to a selected Pinterest board',
 					},
 					{
 						name: 'List Boards',
 						value: 'listBoards',
-						action: 'List boards',
+						action: 'List pinterest boards',
 						description: 'Retrieve boards available to the selected Pinterest account',
 					},
 					{
 						name: 'Create Board',
 						value: 'createBoard',
-						action: 'Create board',
+						action: 'Create pinterest board',
 						description: 'Create a public or secret board for the selected Pinterest account',
 					},
 				],

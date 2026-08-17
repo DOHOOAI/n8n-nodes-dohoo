@@ -57,13 +57,13 @@ export class TikTokResource {
 					{
 						name: 'Publish Video',
 						value: 'publishVideo',
-						action: 'Publish video',
+						action: 'Publish tik tok video',
 						description: 'Publish or send a video to drafts for the selected TikTok account',
 					},
 					{
 						name: 'Publish Photo Carousel',
 						value: 'publishCarousel',
-						action: 'Publish photo carousel',
+						action: 'Publish tik tok photo carousel',
 						description: 'Publish two to thirty-five images as a TikTok photo carousel',
 					},
 				],
@@ -109,6 +109,7 @@ export class TikTokResource {
 				type: 'boolean',
 				default: false,
 				displayOptions: { show: { operation: ['publishVideo'] } },
+				description: 'Whether to prevent viewers from commenting on the TikTok video',
 			},
 			{
 				displayName: 'Disable Duet',
@@ -116,6 +117,7 @@ export class TikTokResource {
 				type: 'boolean',
 				default: false,
 				displayOptions: { show: { operation: ['publishVideo'] } },
+				description: 'Whether to prevent viewers from creating duets with the TikTok video',
 			},
 			{
 				displayName: 'Disable Stitch',
@@ -123,6 +125,7 @@ export class TikTokResource {
 				type: 'boolean',
 				default: false,
 				displayOptions: { show: { operation: ['publishVideo'] } },
+				description: 'Whether to prevent viewers from stitching the TikTok video',
 			},
 			{
 				displayName: 'Send to Draft',
@@ -130,6 +133,7 @@ export class TikTokResource {
 				type: 'boolean',
 				default: false,
 				displayOptions: { show: { operation: ['publishVideo'] } },
+				description: 'Whether to send the TikTok video to drafts instead of publishing it',
 			},
 			{
 				displayName: 'Auto-Add Music',
@@ -137,6 +141,7 @@ export class TikTokResource {
 				type: 'boolean',
 				default: false,
 				displayOptions: { show: { operation: ['publishCarousel'] } },
+				description: 'Whether TikTok should automatically add music to the photo carousel',
 			},
 			{
 				displayName: 'Cover Image Index',

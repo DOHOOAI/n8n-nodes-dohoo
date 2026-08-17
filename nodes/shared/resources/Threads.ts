@@ -44,7 +44,7 @@ export class ThreadsResource {
 					{
 						name: 'Publish Post',
 						value: 'publish',
-						action: 'Publish post',
+						action: 'Publish threads post',
 						description: 'Publish text with optional image or video media to Threads',
 					},
 				],

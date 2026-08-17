@@ -40,13 +40,13 @@ export class YouTubeResource {
 					{
 						name: 'Publish Video',
 						value: 'publish',
-						action: 'Publish video',
+						action: 'Publish you tube video',
 						description: 'Upload and optionally schedule a video for a YouTube channel',
 					},
 					{
 						name: 'Set Thumbnail',
 						value: 'setThumbnail',
-						action: 'Set video thumbnail',
+						action: 'Set you tube video thumbnail',
 						description: 'Set a completed DOHOO image as the thumbnail for a YouTube video',
 					},
 				],

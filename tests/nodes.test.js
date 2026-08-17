@@ -546,11 +546,39 @@ test('all operations include action and description metadata', () => {
 	const operationProperties = new Dohoo().description.properties.filter(
 		(property) => property.name === 'operation',
 	);
+	const resourceTerms = {
+		facebook: 'facebook',
+		instagram: 'instagram',
+		linkedin: 'linked in',
+		media: 'dohoo',
+		pinterest: 'pinterest',
+		scheduledPosts: 'dohoo',
+		threads: 'threads',
+		tiktok: 'tik tok',
+		transcription: 'dohoo',
+		x: 'x',
+		youtube: 'you tube',
+	};
 	for (const property of operationProperties) {
+		const resource = property.displayOptions.show.resource[0];
 		for (const option of property.options) {
 			assert.ok(option.action, `${option.name} is missing action metadata`);
 			assert.ok(option.description, `${option.name} is missing description metadata`);
+			assert.ok(
+				option.action.toLowerCase().includes(resourceTerms[resource]),
+				`${option.name} action does not identify its resource`,
+			);
 		}
+	}
+});
+
+test('boolean parameters explain their behavior with Whether descriptions', () => {
+	const booleanProperties = new Dohoo().description.properties.filter(
+		(property) => property.type === 'boolean',
+	);
+	assert.ok(booleanProperties.length > 0);
+	for (const property of booleanProperties) {
+		assert.match(property.description ?? '', /^Whether\b/);
 	}
 });
 

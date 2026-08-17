@@ -44,13 +44,13 @@ export class FacebookResource {
 					{
 						name: 'Publish Post',
 						value: 'publish',
-						action: 'Publish post',
+						action: 'Publish facebook post',
 						description: 'Publish text, an image, or a video to a Facebook page',
 					},
 					{
 						name: 'Publish Story',
 						value: 'publishStory',
-						action: 'Publish story',
+						action: 'Publish facebook story',
 						description: 'Publish an image or video as a Facebook page story',
 					},
 				],

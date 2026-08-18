@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 - 2026-08-18
+
+- Aligned Facebook publishing with the DOHOO API by exposing only photo, video, and text media types.
+- Preserved existing workflows by mapping the former Facebook reel value to video at execution time.
+- Added n8n search aliases for every supported social platform and common publishing terms.
+- Improved npm and README discoverability without changing the node name or workflow compatibility.
+
 ## 0.2.1 - 2026-08-18
 
 - Removed obsolete legacy node metadata from the published source repository.

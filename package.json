@@ -1,15 +1,28 @@
 {
 	"name": "n8n-nodes-dohoo",
-	"version": "0.2.1",
-	"description": "Publish and schedule content to social media through the DOHOO API",
+	"version": "0.2.2",
+	"description": "Social media publishing for n8n: publish and schedule content to Instagram, TikTok, Facebook, YouTube, X, LinkedIn, Pinterest, and Threads with DOHOO.",
 	"license": "MIT",
 	"homepage": "https://dohoo.ai",
 	"keywords": [
 		"n8n-community-node-package",
+		"n8n",
 		"dohoo",
 		"social-media",
-		"publishing",
-		"scheduling"
+		"social-media-automation",
+		"social-media-posting",
+		"content-publishing",
+		"post-scheduler",
+		"instagram",
+		"tiktok",
+		"facebook",
+		"youtube",
+		"twitter",
+		"linkedin",
+		"pinterest",
+		"threads",
+		"video-publishing",
+		"carousel"
 	],
 	"author": {
 		"name": "DOHOO",

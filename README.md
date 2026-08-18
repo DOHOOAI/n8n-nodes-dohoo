@@ -1,6 +1,8 @@
-# n8n-nodes-dohoo
+# DOHOO for n8n — Social Media Publishing and Scheduling
 
-This package provides a unified n8n community node for [DOHOO](https://dohoo.ai), a social-media publishing and media-management service. The node authenticates with DOHOO and calls the DOHOO API; it does not connect directly to the individual social-network APIs.
+DOHOO is a social media publishing node for n8n. Publish and schedule posts, photos, videos, stories, reels, carousels, and pins across Instagram, TikTok, Facebook, YouTube, X, LinkedIn, Pinterest, and Threads from one workflow.
+
+The node authenticates with [DOHOO](https://dohoo.ai) and calls the DOHOO API; it does not connect directly to the individual social-network APIs.
 
 The n8n node picker shows one **DOHOO** node. Inside it, select a resource such as Instagram, TikTok, Media, or Transcription, then select the operation to perform. Each publication operation still targets one explicitly selected social connection.
 
@@ -28,7 +30,7 @@ Install `n8n-nodes-dohoo` from the Community Nodes settings in n8n, or follow th
 | Resource        | Operations                                                                         |
 | --------------- | ---------------------------------------------------------------------------------- |
 | Instagram       | Publish photo/video/reel/story; publish a carousel; schedule content               |
-| Facebook        | Publish text/photo/video/reel; publish a story; schedule content                   |
+| Facebook        | Publish text/photo/video; publish a story; schedule content                        |
 | TikTok          | Publish video; publish a 2–35 image carousel; schedule content                     |
 | YouTube         | Publish video; use DOHOO or YouTube-native scheduling; set a thumbnail             |
 | X               | Publish text and/or media; schedule a post                                         |
@@ -158,4 +160,6 @@ This package targets n8n 2.x and requires Node.js 22.22.0 or newer. It is built 
 
 ## Version history
 
+- `0.2.2` — aligned Facebook media types with the DOHOO API and improved n8n/npm discovery metadata.
+- `0.2.1` — refreshed the n8n verification toolchain and published source metadata.
 - `0.2.0` — initial public candidate with one unified DOHOO node, list-first resource locators, compact output modes, canonical media handling, scheduling, and transcription.

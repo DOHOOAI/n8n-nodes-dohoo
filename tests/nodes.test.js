@@ -61,6 +61,24 @@ const nodeCases = [
 		},
 	},
 	{
+		name: 'Facebook legacy reel workflow',
+		resource: 'facebook',
+		params: {
+			operation: 'publish',
+			connectionId: 'facebook-1',
+			mediaSource: 'dohooUrl',
+			mediaUrl: videoUrl,
+			mediaType: 'reel',
+			additionalFields: { caption: 'Legacy workflow compatibility test' },
+			publishMode: 'now',
+		},
+		path: '/api/v2/facebook/publish',
+		checkBody: (body) => {
+			assert.equal(body.fileUrl, videoUrl);
+			assert.equal(body.mediaType, 'video');
+		},
+	},
+	{
 		name: 'Facebook story',
 		resource: 'facebook',
 		params: {
@@ -230,6 +248,46 @@ const nodeCases = [
 		},
 	},
 ];
+
+test('Facebook exposes only the media types supported by the DOHOO API', () => {
+	const definition = new Dohoo().description;
+	const resource = definition.properties.find((property) => property.name === 'resource');
+	assert.ok(resource);
+	const facebookOption = resource.options.find((option) => option.value === 'facebook');
+	assert.ok(facebookOption);
+
+	const mediaType = definition.properties.find(
+		(property) =>
+			property.name === 'mediaType' && property.displayOptions?.show?.resource?.includes('facebook'),
+	);
+	assert.ok(mediaType);
+	assert.deepEqual(
+		mediaType.options.map((option) => option.value),
+		['photo', 'text', 'video'],
+	);
+});
+
+test('DOHOO node exposes searchable social media metadata', () => {
+	const definition = new Dohoo().description;
+	const expectedAliases = [
+		'Social Media',
+		'Instagram',
+		'TikTok',
+		'Facebook',
+		'YouTube',
+		'X',
+		'Twitter',
+		'LinkedIn',
+		'Pinterest',
+		'Threads',
+	];
+
+	assert.ok(definition.codex);
+	for (const alias of expectedAliases) {
+		assert.ok(definition.codex.alias.includes(alias), `Missing search alias: ${alias}`);
+	}
+	assert.match(definition.description, /publish and schedule/i);
+});
 
 function makeContext(params, apiReply) {
 	const apiCalls = [];

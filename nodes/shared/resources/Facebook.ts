@@ -67,7 +67,6 @@ export class FacebookResource {
 				type: 'options',
 				options: [
 					{ name: 'Photo', value: 'photo' },
-					{ name: 'Reel', value: 'reel' },
 					{ name: 'Text', value: 'text' },
 					{ name: 'Video', value: 'video' },
 				],
@@ -125,10 +124,15 @@ export class FacebookResource {
 				});
 			}
 
+			const requestedMediaType = mediaUrl
+				? String(this.getNodeParameter('mediaType', itemIndex))
+				: 'text';
 			const body: IDataObject = {
 				facebookPageId: connectionId,
 				caption: String(readAdditionalField(this, itemIndex, 'caption', '')),
-				mediaType: mediaUrl ? String(this.getNodeParameter('mediaType', itemIndex)) : 'text',
+				// Older workflows may still contain the removed `reel` option. The DOHOO API
+				// accepts Facebook media as photo, video, or text, so preserve compatibility.
+				mediaType: requestedMediaType === 'reel' ? 'video' : requestedMediaType,
 			};
 			if (mediaUrl) body.fileUrl = mediaUrl;
 			addSchedule(this, itemIndex, body);

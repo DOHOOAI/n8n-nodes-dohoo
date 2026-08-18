@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 - 2026-08-18
+
+- Removed obsolete legacy node metadata from the published source repository.
+- Pinned the n8n verification toolchain to `@n8n/node-cli` 0.44.2 and refreshed the lockfile.
+
 ## 0.2.0 - 2026-08-17
 
 - Added one unified DOHOO node with 11 resources and 21 operations.

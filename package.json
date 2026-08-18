@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-dohoo",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Publish and schedule content to social media through the DOHOO API",
 	"license": "MIT",
 	"homepage": "https://dohoo.ai",
@@ -55,7 +55,7 @@
 		]
 	},
 	"devDependencies": {
-		"@n8n/node-cli": "*",
+		"@n8n/node-cli": "0.44.2",
 		"eslint": "9.32.0",
 		"prettier": "3.6.2",
 		"release-it": "^19.0.4",

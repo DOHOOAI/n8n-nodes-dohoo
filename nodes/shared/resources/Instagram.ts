@@ -14,9 +14,11 @@ import { locatorValue } from '../locators';
 import { createConnectionLoader } from '../loadOptions';
 import { resolveDohooMediaUrl, resolveMediaUrl } from '../media';
 import {
+	additionalFieldsProperty,
 	connectionProperty,
 	fixedMediaUrlsProperty,
 	mediaSourceProperties,
+	readAdditionalField,
 	schedulingProperties,
 } from '../properties';
 import { addSchedule, publish, readFixedMediaUrls } from '../publication';
@@ -91,15 +93,20 @@ export class InstagramResource {
 				default: 'post',
 				displayOptions: { show: { operation: ['publish'] } },
 			},
-			{
-				displayName: 'Caption',
-				name: 'caption',
-				type: 'string',
-				typeOptions: { rows: 5, maxValue: TEXT_LIMITS.instagramCaption },
-				default: '',
-				description: `Instagram caption (maximum ${TEXT_LIMITS.instagramCaption} characters)`,
-			},
 			...schedulingProperties(publishOperations),
+			additionalFieldsProperty({
+				operations: publishOperations,
+				fields: [
+					{
+						displayName: 'Caption',
+						name: 'caption',
+						type: 'string',
+						typeOptions: { rows: 5, maxValue: TEXT_LIMITS.instagramCaption },
+						default: '',
+						description: `Instagram caption (maximum ${TEXT_LIMITS.instagramCaption} characters)`,
+					},
+				],
+			}),
 		],
 	};
 
@@ -117,7 +124,7 @@ export class InstagramResource {
 			const connectionId = locatorValue(this.getNodeParameter('connectionId', itemIndex));
 			const body: IDataObject = {
 				instagramAccountId: connectionId,
-				caption: String(this.getNodeParameter('caption', itemIndex, '')),
+				caption: String(readAdditionalField(this, itemIndex, 'caption', '')),
 			};
 
 			if (operation === 'publishCarousel') {

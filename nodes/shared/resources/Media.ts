@@ -8,7 +8,11 @@ import { NodeConnectionTypes } from 'n8n-workflow';
 
 import { executeForEachItem } from '../execution';
 import { normalizeFileForOutput, resolveFileIdMediaUrl, resolveMedia } from '../media';
-import { mediaSourceProperties } from '../properties';
+import {
+	additionalFieldsProperty,
+	mediaSourceProperties,
+	readAdditionalField,
+} from '../properties';
 import { asDataObject, asDataObjectArray, dohooApiRequest } from '../transport';
 
 export class MediaResource {
@@ -75,50 +79,50 @@ export class MediaResource {
 				required: true,
 				displayOptions: { show: { operation: ['getUrl', 'getStatus'] } },
 			},
-			{
-				displayName: 'Search',
-				name: 'search',
-				type: 'string',
-				default: '',
-				displayOptions: { show: { operation: ['list'] } },
-				description: 'Case-insensitive text in the filename, title, or description',
-			},
-			{
-				displayName: 'MIME Type',
-				name: 'mimeType',
-				type: 'string',
-				default: '',
-				placeholder: 'e.g. image/',
-				displayOptions: { show: { operation: ['list'] } },
-			},
-			{
-				displayName: 'Status',
-				name: 'status',
-				type: 'options',
-				options: [
-					{ name: 'Any', value: '' },
-					{ name: 'Completed', value: 'completed' },
-					{ name: 'Processing', value: 'processing' },
+			additionalFieldsProperty({
+				operations: ['list'],
+				fields: [
+					{
+						displayName: 'MIME Type',
+						name: 'mimeType',
+						type: 'string',
+						default: '',
+						placeholder: 'e.g. image/',
+					},
+					{
+						displayName: 'Page',
+						name: 'page',
+						type: 'number',
+						typeOptions: { minValue: 1 },
+						default: 1,
+					},
+					{
+						displayName: 'Page Size',
+						name: 'pageSize',
+						type: 'number',
+						typeOptions: { minValue: 1, maxValue: 100 },
+						default: 20,
+					},
+					{
+						displayName: 'Search',
+						name: 'search',
+						type: 'string',
+						default: '',
+						description: 'Case-insensitive text in the filename, title, or description',
+					},
+					{
+						displayName: 'Status',
+						name: 'status',
+						type: 'options',
+						options: [
+							{ name: 'Any', value: '' },
+							{ name: 'Completed', value: 'completed' },
+							{ name: 'Processing', value: 'processing' },
+						],
+						default: '',
+					},
 				],
-				default: '',
-				displayOptions: { show: { operation: ['list'] } },
-			},
-			{
-				displayName: 'Page',
-				name: 'page',
-				type: 'number',
-				typeOptions: { minValue: 1 },
-				default: 1,
-				displayOptions: { show: { operation: ['list'] } },
-			},
-			{
-				displayName: 'Page Size',
-				name: 'pageSize',
-				type: 'number',
-				typeOptions: { minValue: 1, maxValue: 100 },
-				default: 20,
-				displayOptions: { show: { operation: ['list'] } },
-			},
+			}),
 		],
 	};
 
@@ -135,11 +139,11 @@ export class MediaResource {
 			}
 			if (operation === 'list') {
 				const qs: IDataObject = {
-					page: Number(this.getNodeParameter('page', itemIndex, 1)),
-					pageSize: Number(this.getNodeParameter('pageSize', itemIndex, 20)),
+					page: Number(readAdditionalField(this, itemIndex, 'page', 1)),
+					pageSize: Number(readAdditionalField(this, itemIndex, 'pageSize', 20)),
 				};
 				for (const name of ['search', 'mimeType', 'status']) {
-					const value = String(this.getNodeParameter(name, itemIndex, ''));
+					const value = String(readAdditionalField(this, itemIndex, name, ''));
 					if (value) qs[name] = value;
 				}
 				const payload = await dohooApiRequest<unknown>(

@@ -13,7 +13,12 @@ import { executeForEachItem } from '../execution';
 import { locatorValue } from '../locators';
 import { createConnectionLoader } from '../loadOptions';
 import { resolveDohooMediaUrl, resolveMediaUrl } from '../media';
-import { connectionProperty, mediaSourceProperties } from '../properties';
+import {
+	additionalFieldsProperty,
+	connectionProperty,
+	mediaSourceProperties,
+	readAdditionalField,
+} from '../properties';
 import { normalizeScheduledAt, publish } from '../publication';
 
 export class YouTubeResource {
@@ -40,13 +45,13 @@ export class YouTubeResource {
 					{
 						name: 'Publish Video',
 						value: 'publish',
-						action: 'Publish you tube video',
+						action: 'Publish youtube video',
 						description: 'Upload and optionally schedule a video for a YouTube channel',
 					},
 					{
 						name: 'Set Thumbnail',
 						value: 'setThumbnail',
-						action: 'Set you tube video thumbnail',
+						action: 'Set youtube video thumbnail',
 						description: 'Set a completed DOHOO image as the thumbnail for a YouTube video',
 					},
 				],
@@ -61,42 +66,6 @@ export class YouTubeResource {
 				typeOptions: { maxValue: TEXT_LIMITS.youtubeTitle },
 				default: '',
 				required: true,
-				displayOptions: { show: { operation: ['publish'] } },
-			},
-			{
-				displayName: 'Description',
-				name: 'description',
-				type: 'string',
-				typeOptions: { rows: 6, maxValue: TEXT_LIMITS.youtubeDescription },
-				default: '',
-				displayOptions: { show: { operation: ['publish'] } },
-			},
-			{
-				displayName: 'Visibility',
-				name: 'visibility',
-				type: 'options',
-				options: [
-					{ name: 'Private', value: 'private' },
-					{ name: 'Public', value: 'public' },
-					{ name: 'Unlisted', value: 'unlisted' },
-				],
-				default: 'public',
-				displayOptions: { show: { operation: ['publish'] } },
-			},
-			{
-				displayName: 'Tags',
-				name: 'tags',
-				type: 'string',
-				default: '',
-				placeholder: 'e.g. automation, tutorial, dohoo',
-				description: 'Comma-separated YouTube tags',
-				displayOptions: { show: { operation: ['publish'] } },
-			},
-			{
-				displayName: 'Category ID',
-				name: 'category',
-				type: 'string',
-				default: '22',
 				displayOptions: { show: { operation: ['publish'] } },
 			},
 			{
@@ -136,14 +105,50 @@ export class YouTubeResource {
 				displayOptions: { show: { operation: ['publish'], publishMode: ['youtube'] } },
 				description: 'YouTube native scheduled publication time; the upload occurs immediately',
 			},
-			{
-				displayName: 'Thumbnail URL',
-				name: 'thumbnailUrl',
-				type: 'string',
-				default: '',
-				displayOptions: { show: { operation: ['publish'] } },
-				description: 'Optional completed DOHOO image URL for a verified YouTube channel',
-			},
+			additionalFieldsProperty({
+				operations: ['publish'],
+				fields: [
+					{
+						displayName: 'Category ID',
+						name: 'category',
+						type: 'string',
+						default: '22',
+					},
+					{
+						displayName: 'Description',
+						name: 'description',
+						type: 'string',
+						typeOptions: { rows: 6, maxValue: TEXT_LIMITS.youtubeDescription },
+						default: '',
+					},
+					{
+						displayName: 'Tags',
+						name: 'tags',
+						type: 'string',
+						default: '',
+						placeholder: 'e.g. automation, tutorial, dohoo',
+						description: 'Comma-separated YouTube tags',
+					},
+					{
+						displayName: 'Thumbnail URL',
+						name: 'thumbnailUrl',
+						type: 'string',
+						default: '',
+						description: 'Optional completed DOHOO image URL for a verified YouTube channel',
+					},
+					{
+						displayName: 'Visibility',
+						name: 'visibility',
+						type: 'options',
+						options: [
+							{ name: 'Private', value: 'private' },
+							{ name: 'Public', value: 'public' },
+							{ name: 'Unlisted', value: 'unlisted' },
+						],
+						default: 'public',
+					},
+				],
+			}),
 			{
 				displayName: 'YouTube Video ID',
 				name: 'videoId',
@@ -192,16 +197,16 @@ export class YouTubeResource {
 				fileUrl: await resolveMediaUrl(this, itemIndex),
 				connectionId,
 				title: String(this.getNodeParameter('title', itemIndex)),
-				description: String(this.getNodeParameter('description', itemIndex, '')),
-				visibility: String(this.getNodeParameter('visibility', itemIndex)),
-				category: String(this.getNodeParameter('category', itemIndex, '22')),
+				description: String(readAdditionalField(this, itemIndex, 'description', '')),
+				visibility: String(readAdditionalField(this, itemIndex, 'visibility', 'public')),
+				category: String(readAdditionalField(this, itemIndex, 'category', '22')),
 			};
-			const tags = String(this.getNodeParameter('tags', itemIndex, ''))
+			const tags = String(readAdditionalField(this, itemIndex, 'tags', ''))
 				.split(',')
 				.map((tag) => tag.trim())
 				.filter(Boolean);
 			if (tags.length) body.tags = tags;
-			const thumbnailUrl = String(this.getNodeParameter('thumbnailUrl', itemIndex, ''));
+			const thumbnailUrl = String(readAdditionalField(this, itemIndex, 'thumbnailUrl', ''));
 			if (thumbnailUrl)
 				body.thumbnail_url = await resolveDohooMediaUrl(this, itemIndex, thumbnailUrl);
 
@@ -218,7 +223,11 @@ export class YouTubeResource {
 					throw new NodeOperationError(
 						this.getNode(),
 						'YouTube native scheduling requires Visibility to be Private',
-						{ itemIndex },
+						{
+							itemIndex,
+							description:
+								'Open Additional Fields, set Visibility to Private, and run the node again.',
+						},
 					);
 				}
 				body.publish_at = String(this.getNodeParameter('publishAt', itemIndex));

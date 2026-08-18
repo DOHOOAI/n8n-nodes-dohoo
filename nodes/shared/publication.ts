@@ -61,17 +61,28 @@ export async function publishThroughSocialPost(
 	connectionId: string,
 	body: IDataObject,
 ): Promise<IDataObject> {
+	const numericConnectionId = Number(connectionId);
+	if (!Number.isInteger(numericConnectionId) || numericConnectionId <= 0) {
+		throw new NodeOperationError(context.getNode(), 'The DOHOO connection ID must be a positive integer', {
+			itemIndex,
+			description: 'Select the TikTok account again or enter its numeric DOHOO connection ID.',
+		});
+	}
 	const response = asDataObject(
 		await dohooApiRequest(context, 'POST', '/api/social/post', {
 			...body,
-			platforms: [connectionId],
+			platforms: [numericConnectionId],
 		}),
 	);
 	if (response.success === false) {
 		throw new NodeOperationError(
 			context.getNode(),
 			String(response.error ?? response.message ?? 'DOHOO rejected the publication'),
-			{ itemIndex },
+			{
+				itemIndex,
+				description:
+					'Review the selected account, media, publishing settings, and subscription status, then run the node again.',
+			},
 		);
 	}
 	const results = asDataObjectArray(response.results);
@@ -82,14 +93,22 @@ export async function publishThroughSocialPost(
 		throw new NodeOperationError(
 			context.getNode(),
 			'DOHOO returned no per-account result for this publication',
-			{ itemIndex },
+			{
+				itemIndex,
+				description:
+					'Check the selected social account in DOHOO and retry once. If the problem persists, contact DOHOO support with the execution time.',
+			},
 		);
 	}
 	if (result.success === false) {
 		throw new NodeOperationError(
 			context.getNode(),
 			String(result.error ?? result.message ?? 'The social platform rejected the publication'),
-			{ itemIndex },
+			{
+				itemIndex,
+				description:
+					'Open the connected account in DOHOO, correct any authorization or platform-specific content issue, and run the node again.',
+			},
 		);
 	}
 
@@ -109,7 +128,10 @@ export function readFixedMediaUrls(
 		throw new NodeOperationError(
 			context.getNode(),
 			`Provide between ${minimum} and ${maximum} media URLs`,
-			{ itemIndex },
+			{
+				itemIndex,
+				description: `Add at least ${minimum} and no more than ${maximum} completed DOHOO media URLs.`,
+			},
 		);
 	}
 	return urls;

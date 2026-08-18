@@ -32,11 +32,15 @@ function parseByteCount(value: unknown): number | undefined {
 
 function validateSize(context: IExecuteFunctions, itemIndex: number, fileSize: number): void {
 	if (fileSize <= 0) {
-		throw new NodeOperationError(context.getNode(), 'The media file is empty', { itemIndex });
+		throw new NodeOperationError(context.getNode(), 'The media file is empty', {
+			itemIndex,
+			description: 'Choose a non-empty binary file or a different media source, then run the node again.',
+		});
 	}
 	if (fileSize > MAX_UPLOAD_BYTES) {
 		throw new NodeOperationError(context.getNode(), 'The media file exceeds the 2 GB limit', {
 			itemIndex,
+			description: 'Use a file smaller than 2 GB, then run the node again.',
 		});
 	}
 }
@@ -48,10 +52,14 @@ function assertHttps(context: IExecuteFunctions, itemIndex: number, value: strin
 	} catch {
 		throw new NodeOperationError(context.getNode(), 'Enter a valid HTTPS media URL', {
 			itemIndex,
+			description: 'Enter the complete public URL beginning with https://, then run the node again.',
 		});
 	}
 	if (parsed.protocol !== 'https:') {
-		throw new NodeOperationError(context.getNode(), 'Media URLs must use HTTPS', { itemIndex });
+		throw new NodeOperationError(context.getNode(), 'Media URLs must use HTTPS', {
+			itemIndex,
+			description: 'Replace the URL with its HTTPS version, then run the node again.',
+		});
 	}
 	return parsed;
 }
@@ -116,7 +124,11 @@ async function externalUploadInput(
 		throw new NodeOperationError(
 			context.getNode(),
 			validation.error ?? 'The External URL is not allowed',
-			{ itemIndex },
+			{
+				itemIndex,
+				description:
+					'Use a public HTTPS URL that does not resolve to a local, private, loopback, or cloud-metadata address.',
+			},
 		);
 	}
 	let parsed = validation.url;
@@ -141,12 +153,16 @@ async function externalUploadInput(
 			throw new NodeOperationError(
 				context.getNode(),
 				'The External URL redirect did not include a destination',
-				{ itemIndex },
+				{
+					itemIndex,
+					description: 'Enter the final public HTTPS file URL directly, then run the node again.',
+				},
 			);
 		}
 		if (redirectCount === 5) {
 			throw new NodeOperationError(context.getNode(), 'The External URL redirected too many times', {
 				itemIndex,
+				description: 'Enter the final public HTTPS file URL directly instead of a redirecting URL.',
 			});
 		}
 		validation = validatePublicExternalUrl(new URL(location, parsed).toString());
@@ -154,7 +170,11 @@ async function externalUploadInput(
 			throw new NodeOperationError(
 				context.getNode(),
 				validation.error ?? 'The External URL redirect is not allowed',
-				{ itemIndex },
+				{
+					itemIndex,
+					description:
+						'Use a redirect whose destination is a public HTTPS URL and not a local, private, loopback, or cloud-metadata address.',
+				},
 			);
 		}
 		parsed = validation.url;
@@ -165,7 +185,10 @@ async function externalUploadInput(
 		throw new NodeOperationError(
 			context.getNode(),
 			`The External URL returned HTTP ${response?.statusCode ?? 'unknown'}`,
-			{ itemIndex },
+			{
+				itemIndex,
+				description: 'Make the file publicly downloadable over HTTPS or use n8n binary data instead.',
+			},
 		);
 	}
 	const headerLength = response.headers['content-length'];
@@ -176,7 +199,11 @@ async function externalUploadInput(
 		throw new NodeOperationError(
 			context.getNode(),
 			'The external server did not provide Content-Length; download the file into n8n binary data first',
-			{ itemIndex },
+			{
+				itemIndex,
+				description:
+					'Download the file with an HTTP Request node, enable binary output, and select that binary property as the media source.',
+			},
 		);
 	}
 	validateSize(context, itemIndex, fileSize);
@@ -274,7 +301,10 @@ export async function resolveDohooMediaUrl(
 		throw new NodeOperationError(
 			context.getNode(),
 			`DOHOO media URLs must start with ${DOHOO_MEDIA_PREFIX}`,
-			{ itemIndex },
+			{
+				itemIndex,
+				description: 'Use the canonical DOHOO media-storage URL or select DOHOO File ID as the media source.',
+			},
 		);
 	}
 
@@ -319,7 +349,10 @@ export async function resolveDohooMediaUrl(
 	throw new NodeOperationError(
 		context.getNode(),
 		'DOHOO media storage has not made this file publicly available yet; retry shortly without uploading it again',
-		{ itemIndex },
+		{
+			itemIndex,
+			description: 'Wait briefly and retry using the same DOHOO File ID. Do not upload the file bytes again.',
+		},
 	);
 }
 
@@ -339,7 +372,10 @@ async function waitForCompletedFile(
 			throw new NodeOperationError(
 				context.getNode(),
 				String(payload.error ?? file.error ?? 'DOHOO could not process the uploaded file'),
-				{ itemIndex },
+				{
+					itemIndex,
+					description: 'Inspect the file in DOHOO and upload a valid supported media file before retrying.',
+				},
 			);
 		}
 		if (['completed', 'ready', 'uploaded'].includes(status)) {
@@ -356,7 +392,10 @@ async function waitForCompletedFile(
 						throw new NodeOperationError(
 							context.getNode(),
 							error instanceof Error ? error.message : 'The public media URL is not ready',
-							{ itemIndex },
+							{
+								itemIndex,
+								description: 'Wait briefly and retry using the same DOHOO File ID. Do not upload the file bytes again.',
+							},
 						);
 					}
 				}
@@ -369,6 +408,7 @@ async function waitForCompletedFile(
 		'Timed out waiting for DOHOO to process the file',
 		{
 			itemIndex,
+			description: 'Wait briefly and retry using the same DOHOO File ID. Do not upload the file bytes again.',
 		},
 	);
 }
@@ -397,6 +437,7 @@ async function uploadToDohoo(
 	if (!uploadUrl || !Number.isInteger(fileId) || fileId <= 0) {
 		throw new NodeOperationError(context.getNode(), 'DOHOO returned an invalid upload slot', {
 			itemIndex,
+			description: 'Run the node again. If the error persists, verify the DOHOO subscription and contact DOHOO support.',
 		});
 	}
 	const uploadValidation = validateDohooUploadUrl(uploadUrl);
@@ -404,7 +445,10 @@ async function uploadToDohoo(
 		throw new NodeOperationError(
 			context.getNode(),
 			uploadValidation.error ?? 'DOHOO returned an invalid upload URL',
-			{ itemIndex },
+			{
+				itemIndex,
+				description: 'Run the node again to request a new upload URL. If it persists, contact DOHOO support.',
+			},
 		);
 	}
 	const approvedUploadUrl = uploadValidation.url;
@@ -432,7 +476,10 @@ async function uploadToDohoo(
 		throw new NodeOperationError(
 			context.getNode(),
 			`The bytes were uploaded as DOHOO file ID ${fileId}, but the public media URL is not ready. Retry with Media Source “DOHOO File ID” and File ID ${fileId}; do not upload the bytes again. ${error instanceof Error ? error.message : ''}`.trim(),
-			{ itemIndex },
+			{
+				itemIndex,
+				description: `Select DOHOO File ID as the media source, enter ${fileId}, and retry later without uploading the bytes again.`,
+			},
 		);
 	}
 }
@@ -470,6 +517,7 @@ export async function resolveMedia(
 	}
 	throw new NodeOperationError(context.getNode(), `Unsupported media source: ${source}`, {
 		itemIndex,
+		description: 'Select one of the available Media Source options and run the node again.',
 	});
 }
 

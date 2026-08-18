@@ -14,9 +14,11 @@ import { locatorValue } from '../locators';
 import { createConnectionLoader } from '../loadOptions';
 import { resolveDohooMediaUrl, resolveMediaUrl } from '../media';
 import {
+	additionalFieldsProperty,
 	connectionProperty,
 	fixedMediaUrlsProperty,
 	mediaSourceProperties,
+	readAdditionalField,
 	schedulingProperties,
 } from '../properties';
 import {
@@ -57,13 +59,13 @@ export class TikTokResource {
 					{
 						name: 'Publish Video',
 						value: 'publishVideo',
-						action: 'Publish tik tok video',
+						action: 'Publish tiktok video',
 						description: 'Publish or send a video to drafts for the selected TikTok account',
 					},
 					{
 						name: 'Publish Photo Carousel',
 						value: 'publishCarousel',
-						action: 'Publish tik tok photo carousel',
+						action: 'Publish tiktok photo carousel',
 						description: 'Publish two to thirty-five images as a TikTok photo carousel',
 					},
 				],
@@ -81,77 +83,87 @@ export class TikTokResource {
 				displayName: 'Description',
 				name: 'description',
 				type: 'string',
-				typeOptions: { rows: 5, maxValue: TEXT_LIMITS.tiktokVideoDescription },
-				default: '',
-				displayOptions: { show: { operation: ['publishVideo'] } },
-				description: 'Optional TikTok video caption',
-			},
-			{
-				displayName: 'Description',
-				name: 'description',
-				type: 'string',
 				typeOptions: { rows: 5, maxValue: TEXT_LIMITS.tiktokCarouselDescription },
 				default: '',
 				required: true,
 				displayOptions: { show: { operation: ['publishCarousel'] } },
 				description: 'Required TikTok photo-carousel caption',
 			},
-			{
-				displayName: 'Visibility',
-				name: 'visibility',
-				type: 'options',
-				options: visibilityOptions,
-				default: 'SELF_ONLY',
-			},
-			{
-				displayName: 'Disable Comments',
-				name: 'disableComment',
-				type: 'boolean',
-				default: false,
-				displayOptions: { show: { operation: ['publishVideo'] } },
-				description: 'Whether to prevent viewers from commenting on the TikTok video',
-			},
-			{
-				displayName: 'Disable Duet',
-				name: 'disableDuet',
-				type: 'boolean',
-				default: false,
-				displayOptions: { show: { operation: ['publishVideo'] } },
-				description: 'Whether to prevent viewers from creating duets with the TikTok video',
-			},
-			{
-				displayName: 'Disable Stitch',
-				name: 'disableStitch',
-				type: 'boolean',
-				default: false,
-				displayOptions: { show: { operation: ['publishVideo'] } },
-				description: 'Whether to prevent viewers from stitching the TikTok video',
-			},
-			{
-				displayName: 'Send to Draft',
-				name: 'sendToDraft',
-				type: 'boolean',
-				default: false,
-				displayOptions: { show: { operation: ['publishVideo'] } },
-				description: 'Whether to send the TikTok video to drafts instead of publishing it',
-			},
-			{
-				displayName: 'Auto-Add Music',
-				name: 'autoMusic',
-				type: 'boolean',
-				default: false,
-				displayOptions: { show: { operation: ['publishCarousel'] } },
-				description: 'Whether TikTok should automatically add music to the photo carousel',
-			},
-			{
-				displayName: 'Cover Image Index',
-				name: 'coverIndex',
-				type: 'number',
-				typeOptions: { minValue: 0 },
-				default: 0,
-				displayOptions: { show: { operation: ['publishCarousel'] } },
-			},
 			...schedulingProperties(['publishVideo', 'publishCarousel']),
+			additionalFieldsProperty({
+				operations: ['publishVideo'],
+				fields: [
+					{
+						displayName: 'Description',
+						name: 'description',
+						type: 'string',
+						typeOptions: { rows: 5, maxValue: TEXT_LIMITS.tiktokVideoDescription },
+						default: '',
+						description: 'Optional TikTok video caption',
+					},
+					{
+						displayName: 'Disable Comments',
+						name: 'disableComment',
+						type: 'boolean',
+						default: false,
+						description: 'Whether to prevent viewers from commenting on the TikTok video',
+					},
+					{
+						displayName: 'Disable Duet',
+						name: 'disableDuet',
+						type: 'boolean',
+						default: false,
+						description: 'Whether to prevent viewers from creating duets with the TikTok video',
+					},
+					{
+						displayName: 'Disable Stitch',
+						name: 'disableStitch',
+						type: 'boolean',
+						default: false,
+						description: 'Whether to prevent viewers from stitching the TikTok video',
+					},
+					{
+						displayName: 'Send to Draft',
+						name: 'sendToDraft',
+						type: 'boolean',
+						default: false,
+						description: 'Whether to send the TikTok video to drafts instead of publishing it',
+					},
+					{
+						displayName: 'Visibility',
+						name: 'visibility',
+						type: 'options',
+						options: visibilityOptions,
+						default: 'SELF_ONLY',
+					},
+				],
+			}),
+			additionalFieldsProperty({
+				operations: ['publishCarousel'],
+				fields: [
+					{
+						displayName: 'Auto-Add Music',
+						name: 'autoMusic',
+						type: 'boolean',
+						default: false,
+						description: 'Whether TikTok should automatically add music to the photo carousel',
+					},
+					{
+						displayName: 'Cover Image Index',
+						name: 'coverIndex',
+						type: 'number',
+						typeOptions: { minValue: 0 },
+						default: 0,
+					},
+					{
+						displayName: 'Visibility',
+						name: 'visibility',
+						type: 'options',
+						options: visibilityOptions,
+						default: 'SELF_ONLY',
+					},
+				],
+			}),
 		],
 	};
 
@@ -167,16 +179,20 @@ export class TikTokResource {
 		return await executeForEachItem(this, async (itemIndex) => {
 			const operation = String(this.getNodeParameter('operation', itemIndex));
 			const connectionId = locatorValue(this.getNodeParameter('connectionId', itemIndex));
-			const description = String(this.getNodeParameter('description', itemIndex));
-			const visibility = String(this.getNodeParameter('visibility', itemIndex));
+			const description = String(
+				operation === 'publishCarousel'
+					? this.getNodeParameter('description', itemIndex)
+					: readAdditionalField(this, itemIndex, 'description', ''),
+			);
+			const visibility = String(readAdditionalField(this, itemIndex, 'visibility', 'SELF_ONLY'));
 
 			if (operation === 'publishCarousel') {
 				const body: IDataObject = {
 					connectionId,
 					description,
 					visibility,
-					autoMusic: Boolean(this.getNodeParameter('autoMusic', itemIndex)),
-					coverIndex: Number(this.getNodeParameter('coverIndex', itemIndex)),
+					autoMusic: Boolean(readAdditionalField(this, itemIndex, 'autoMusic', false)),
+					coverIndex: Number(readAdditionalField(this, itemIndex, 'coverIndex', 0)),
 					mediaUrls: await Promise.all(
 						readFixedMediaUrls(this, itemIndex, 2, 35).map(
 							async (url) => await resolveDohooMediaUrl(this, itemIndex, url),
@@ -192,16 +208,16 @@ export class TikTokResource {
 				description,
 				tiktokVisibility: { [connectionId]: visibility },
 				tiktokDisableComment: {
-					[connectionId]: Boolean(this.getNodeParameter('disableComment', itemIndex)),
+					[connectionId]: Boolean(readAdditionalField(this, itemIndex, 'disableComment', false)),
 				},
 				tiktokDisableDuet: {
-					[connectionId]: Boolean(this.getNodeParameter('disableDuet', itemIndex)),
+					[connectionId]: Boolean(readAdditionalField(this, itemIndex, 'disableDuet', false)),
 				},
 				tiktokDisableStitch: {
-					[connectionId]: Boolean(this.getNodeParameter('disableStitch', itemIndex)),
+					[connectionId]: Boolean(readAdditionalField(this, itemIndex, 'disableStitch', false)),
 				},
 				tiktokSendToDraft: {
-					[connectionId]: Boolean(this.getNodeParameter('sendToDraft', itemIndex)),
+					[connectionId]: Boolean(readAdditionalField(this, itemIndex, 'sendToDraft', false)),
 				},
 			};
 			addSchedule(this, itemIndex, body);

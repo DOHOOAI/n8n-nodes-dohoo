@@ -14,8 +14,10 @@ import { locatorValue } from '../locators';
 import { createConnectionLoader } from '../loadOptions';
 import { resolveMediaUrl } from '../media';
 import {
+	additionalFieldsProperty,
 	connectionProperty,
 	mediaSourceProperties,
+	readAdditionalField,
 	schedulingProperties,
 } from '../properties';
 import { addSchedule, publish } from '../publication';
@@ -86,15 +88,19 @@ export class FacebookResource {
 				default: 'photo',
 				displayOptions: { show: { operation: ['publishStory'] } },
 			},
-			{
-				displayName: 'Caption',
-				name: 'caption',
-				type: 'string',
-				typeOptions: { rows: 5, maxValue: TEXT_LIMITS.facebookCaption },
-				default: '',
-				displayOptions: { show: { operation: ['publish'] } },
-			},
 			...schedulingProperties(['publish']),
+			additionalFieldsProperty({
+				operations: ['publish'],
+				fields: [
+					{
+						displayName: 'Caption',
+						name: 'caption',
+						type: 'string',
+						typeOptions: { rows: 5, maxValue: TEXT_LIMITS.facebookCaption },
+						default: '',
+					},
+				],
+			}),
 		],
 	};
 
@@ -121,7 +127,7 @@ export class FacebookResource {
 
 			const body: IDataObject = {
 				facebookPageId: connectionId,
-				caption: String(this.getNodeParameter('caption', itemIndex, '')),
+				caption: String(readAdditionalField(this, itemIndex, 'caption', '')),
 				mediaType: mediaUrl ? String(this.getNodeParameter('mediaType', itemIndex)) : 'text',
 			};
 			if (mediaUrl) body.fileUrl = mediaUrl;

@@ -7,6 +7,7 @@ import type {
 import { NodeConnectionTypes } from 'n8n-workflow';
 
 import { executeForEachItem } from '../execution';
+import { additionalFieldsProperty, readAdditionalField } from '../properties';
 import { asDataObject, asDataObjectArray, dohooApiRequest } from '../transport';
 
 export class ScheduledPostsResource {
@@ -67,40 +68,45 @@ export class ScheduledPostsResource {
 				required: true,
 				displayOptions: { show: { period: ['custom'] } },
 			},
-			{
-				displayName: 'Status',
-				name: 'status',
-				type: 'options',
-				options: [
-					{ name: 'Pending', value: 'pending' },
-					{ name: 'Published', value: 'published' },
-					{ name: 'Failed', value: 'failed' },
-					{ name: 'All', value: 'all' },
+			additionalFieldsProperty({
+				operations: ['list'],
+				fields: [
+					{
+						displayName: 'Limit',
+						name: 'limit',
+						type: 'number',
+						typeOptions: { minValue: 1, maxValue: 100 },
+						default: 50,
+						description: 'Max number of results to return',
+					},
+					{
+						displayName: 'Offset',
+						name: 'offset',
+						type: 'number',
+						typeOptions: { minValue: 0 },
+						default: 0,
+					},
+					{
+						displayName: 'Platform',
+						name: 'platform',
+						type: 'string',
+						default: '',
+						placeholder: 'e.g. instagram',
+					},
+					{
+						displayName: 'Status',
+						name: 'status',
+						type: 'options',
+						options: [
+							{ name: 'All', value: 'all' },
+							{ name: 'Failed', value: 'failed' },
+							{ name: 'Pending', value: 'pending' },
+							{ name: 'Published', value: 'published' },
+						],
+						default: 'pending',
+					},
 				],
-				default: 'pending',
-			},
-			{
-				displayName: 'Platform',
-				name: 'platform',
-				type: 'string',
-				default: '',
-				placeholder: 'e.g. instagram',
-			},
-			{
-				displayName: 'Limit',
-				name: 'limit',
-				type: 'number',
-				typeOptions: { minValue: 1, maxValue: 100 },
-				default: 50,
-				description: 'Max number of results to return',
-			},
-			{
-				displayName: 'Offset',
-				name: 'offset',
-				type: 'number',
-				typeOptions: { minValue: 0 },
-				default: 0,
-			},
+			}),
 		],
 	};
 
@@ -109,11 +115,11 @@ export class ScheduledPostsResource {
 			const period = String(this.getNodeParameter('period', itemIndex));
 			const qs: IDataObject = {
 				period,
-				status: String(this.getNodeParameter('status', itemIndex)),
-				limit: Number(this.getNodeParameter('limit', itemIndex)),
-				offset: Number(this.getNodeParameter('offset', itemIndex)),
+				status: String(readAdditionalField(this, itemIndex, 'status', 'pending')),
+				limit: Number(readAdditionalField(this, itemIndex, 'limit', 50)),
+				offset: Number(readAdditionalField(this, itemIndex, 'offset', 0)),
 			};
-			const platform = String(this.getNodeParameter('platform', itemIndex, ''));
+			const platform = String(readAdditionalField(this, itemIndex, 'platform', ''));
 			if (platform) qs.platform = platform;
 			if (period === 'custom') {
 				qs.from = String(this.getNodeParameter('from', itemIndex)).slice(0, 10);

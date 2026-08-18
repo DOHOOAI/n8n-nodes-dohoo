@@ -88,7 +88,10 @@ export class XResource {
 			const text = String(this.getNodeParameter('text', itemIndex, ''));
 			const mediaUrl = await resolveMediaUrl(this, itemIndex);
 			if (!text && !mediaUrl) {
-				throw new NodeOperationError(this.getNode(), 'Provide text, media, or both', { itemIndex });
+				throw new NodeOperationError(this.getNode(), 'Provide text, media, or both', {
+					itemIndex,
+					description: 'Enter post text or select a media source before running the node again.',
+				});
 			}
 			const body: IDataObject = {
 				connectionId: locatorValue(this.getNodeParameter('connectionId', itemIndex)),

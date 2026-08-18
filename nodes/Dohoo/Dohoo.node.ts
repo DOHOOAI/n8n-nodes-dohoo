@@ -165,7 +165,9 @@ export class Dohoo implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const resource = String(this.getNodeParameter('resource', 0));
 		if (!isDohooResource(resource)) {
-			throw new NodeOperationError(this.getNode(), `Unsupported DOHOO resource: ${resource}`);
+			throw new NodeOperationError(this.getNode(), `Unsupported DOHOO resource: ${resource}`, {
+				description: 'Select one of the resources available in the Resource field and run the node again.',
+			});
 		}
 		return applyOutputMode(this, await resourceNodes[resource].run.call(this));
 	}

@@ -19,7 +19,7 @@ const nodeCases = [
 			mediaUrl: imageUrl,
 			mediaType: 'photo',
 			contentType: 'post',
-			caption: 'Contract test',
+			additionalFields: { caption: 'Contract test' },
 			publishMode: 'now',
 		},
 		path: '/api/v2/instagram/publish',
@@ -35,7 +35,7 @@ const nodeCases = [
 			operation: 'publishCarousel',
 			connectionId: 'instagram-1',
 			mediaItems: { items: [{ url: imageUrl }, { url: imageUrl }] },
-			caption: 'Contract carousel',
+			additionalFields: { caption: 'Contract carousel' },
 			publishMode: 'now',
 		},
 		path: '/api/v2/instagram/publish',
@@ -51,7 +51,7 @@ const nodeCases = [
 			operation: 'publish',
 			connectionId: 'facebook-1',
 			mediaSource: 'none',
-			caption: 'Contract test',
+			additionalFields: { caption: 'Contract test' },
 			publishMode: 'now',
 		},
 		path: '/api/v2/facebook/publish',
@@ -78,21 +78,25 @@ const nodeCases = [
 		resource: 'tiktok',
 		params: {
 			operation: 'publishVideo',
-			connectionId: 'tiktok-1',
+			connectionId: '3892',
 			mediaSource: 'dohooUrl',
 			mediaUrl: videoUrl,
-			description: 'Contract test',
-			visibility: 'SELF_ONLY',
-			disableComment: false,
-			disableDuet: false,
-			disableStitch: false,
-			sendToDraft: true,
+			additionalFields: {
+				description: 'Contract test',
+				visibility: 'SELF_ONLY',
+				disableComment: false,
+				disableDuet: false,
+				disableStitch: false,
+				sendToDraft: true,
+			},
 			publishMode: 'now',
 		},
 		path: '/api/social/post',
 		checkBody: (body) => {
-			assert.deepEqual(body.platforms, ['tiktok-1']);
+			assert.deepEqual(body.platforms, [3892]);
 			assert.equal(body.fileUrl, videoUrl);
+			assert.equal(body.description, 'Contract test');
+			assert.equal(body.tiktokSendToDraft['3892'], true);
 		},
 	},
 	{
@@ -103,9 +107,7 @@ const nodeCases = [
 			connectionId: 'tiktok-1',
 			mediaItems: { items: [{ url: imageUrl }, { url: imageUrl }] },
 			description: 'Contract carousel',
-			visibility: 'SELF_ONLY',
-			autoMusic: false,
-			coverIndex: 0,
+			additionalFields: { visibility: 'SELF_ONLY', autoMusic: false, coverIndex: 0 },
 			publishMode: 'now',
 		},
 		path: '/api/v2/tiktok/publish',
@@ -120,11 +122,13 @@ const nodeCases = [
 			mediaSource: 'dohooUrl',
 			mediaUrl: videoUrl,
 			title: 'Contract test',
-			description: 'Contract test',
-			visibility: 'private',
-			tags: 'n8n, dohoo',
-			category: '22',
-			thumbnailUrl: '',
+			additionalFields: {
+				description: 'Contract test',
+				visibility: 'private',
+				tags: 'n8n, dohoo',
+				category: '22',
+				thumbnailUrl: '',
+			},
 			publishMode: 'now',
 		},
 		path: '/api/v2/youtube/publish',
@@ -166,7 +170,7 @@ const nodeCases = [
 			connectionId: 'linkedin-1',
 			mediaSource: 'none',
 			text: 'Contract test',
-			organizationId: '',
+			additionalFields: { organizationId: '' },
 			publishMode: 'now',
 		},
 		path: '/api/v2/linkedin/publish',
@@ -181,10 +185,12 @@ const nodeCases = [
 			boardId: { mode: 'list', value: 'board-1' },
 			mediaSource: 'dohooUrl',
 			mediaUrl: imageUrl,
-			title: 'Contract test',
-			description: 'Description must be preserved #n8n',
-			link: 'https://dohoo.ai',
-			altText: 'Contract test image',
+			additionalFields: {
+				title: 'Contract test',
+				description: 'Description must be preserved #n8n',
+				link: 'https://dohoo.ai',
+				altText: 'Contract test image',
+			},
 			publishMode: 'now',
 		},
 		path: '/api/v2/pinterest/publish',
@@ -215,7 +221,7 @@ const nodeCases = [
 			operation: 'transcribe',
 			mediaSource: 'dohooUrl',
 			mediaUrl: videoUrl,
-			language: 'ru',
+			additionalFields: { language: 'ru' },
 		},
 		path: '/api/transcriptions',
 		checkBody: (body) => {
@@ -278,6 +284,24 @@ for (const nodeCase of nodeCases) {
 	});
 }
 
+test('TikTok video rejects a non-numeric connection ID before calling the publication API', async () => {
+	const { context, apiCalls } = makeContext({
+		resource: 'tiktok',
+		operation: 'publishVideo',
+		connectionId: 'not-a-number',
+		mediaSource: 'dohooUrl',
+		mediaUrl: videoUrl,
+		additionalFields: { visibility: 'SELF_ONLY' },
+		publishMode: 'now',
+	});
+
+	await assert.rejects(
+		new Dohoo().execute.call(context),
+		/connection ID must be a positive integer/,
+	);
+	assert.equal(apiCalls.length, 0);
+});
+
 test('Pinterest board operations use connection-scoped endpoints', async () => {
 	const list = makeContext(
 		{ resource: 'pinterest', operation: 'listBoards', connectionId: 'pin/1' },
@@ -296,8 +320,10 @@ test('Pinterest board operations use connection-scoped endpoints', async () => {
 		operation: 'createBoard',
 		connectionId: 'pin/1',
 		boardName: 'Contract board',
-		boardDescription: 'Created by an isolated contract test',
-		privacy: 'SECRET',
+		additionalFields: {
+			boardDescription: 'Created by an isolated contract test',
+			privacy: 'SECRET',
+		},
 	});
 	await new Dohoo().execute.call(create.context);
 	assert.equal(create.apiCalls[0].url, '/api/v2/pinterest/boards/pin%2F1');
@@ -334,11 +360,13 @@ test('Media read operations normalize live response shapes', async () => {
 		{
 			resource: 'media',
 			operation: 'list',
-			page: 2,
-			pageSize: 10,
-			search: 'test',
-			mimeType: 'image/',
-			status: 'completed',
+			additionalFields: {
+				page: 2,
+				pageSize: 10,
+				search: 'test',
+				mimeType: 'image/',
+				status: 'completed',
+			},
 		},
 		async () => ({ files: [{ id: 43, status: 'completed', url: imageUrl }] }),
 	);
@@ -411,10 +439,12 @@ test('Scheduled Posts sends filters as query parameters', async () => {
 			period: 'custom',
 			from: '2026-08-01T00:00:00.000Z',
 			to: '2026-08-31T23:59:59.000Z',
-			status: 'all',
-			platform: 'instagram',
-			limit: 25,
-			offset: 5,
+			additionalFields: {
+				status: 'all',
+				platform: 'instagram',
+				limit: 25,
+				offset: 5,
+			},
 		},
 		async () => ({ success: true, posts: [] }),
 	);
@@ -542,6 +572,40 @@ test('the unified node scopes every operation field to exactly one resource', ()
 	}
 });
 
+test('optional operation fields are grouped in alphabetized Additional Fields collections', () => {
+	const properties = new Dohoo().description.properties;
+	const expected = [
+		['facebook', 'publish', 'caption'],
+		['instagram', 'publish', 'caption'],
+		['instagram', 'publishCarousel', 'caption'],
+		['linkedin', 'publish', 'organizationId'],
+		['media', 'list', 'pageSize'],
+		['pinterest', 'publish', 'description'],
+		['pinterest', 'createBoard', 'privacy'],
+		['scheduledPosts', 'list', 'platform'],
+		['tiktok', 'publishVideo', 'disableComment'],
+		['tiktok', 'publishCarousel', 'autoMusic'],
+		['transcription', 'transcribe', 'language'],
+		['youtube', 'publish', 'visibility'],
+	];
+
+	for (const [resource, operation, field] of expected) {
+		const collection = properties.find(
+			(property) =>
+				property.name === 'additionalFields' &&
+				property.displayOptions?.show?.resource?.includes(resource) &&
+				property.displayOptions?.show?.operation?.includes(operation) &&
+				property.options?.some((option) => option.name === field),
+		);
+		assert.ok(collection, `${resource}.${operation}.${field} is not in Additional Fields`);
+	}
+
+	for (const collection of properties.filter((property) => property.name === 'additionalFields')) {
+		const names = collection.options.map((option) => option.displayName);
+		assert.deepEqual(names, [...names].sort((left, right) => left.localeCompare(right)));
+	}
+});
+
 test('all operations include action and description metadata', () => {
 	const operationProperties = new Dohoo().description.properties.filter(
 		(property) => property.name === 'operation',
@@ -549,15 +613,15 @@ test('all operations include action and description metadata', () => {
 	const resourceTerms = {
 		facebook: 'facebook',
 		instagram: 'instagram',
-		linkedin: 'linked in',
+		linkedin: 'linkedin',
 		media: 'dohoo',
 		pinterest: 'pinterest',
 		scheduledPosts: 'dohoo',
 		threads: 'threads',
-		tiktok: 'tik tok',
+		tiktok: 'tiktok',
 		transcription: 'dohoo',
 		x: 'x',
-		youtube: 'you tube',
+		youtube: 'youtube',
 	};
 	for (const property of operationProperties) {
 		const resource = property.displayOptions.show.resource[0];
@@ -573,9 +637,12 @@ test('all operations include action and description metadata', () => {
 });
 
 test('boolean parameters explain their behavior with Whether descriptions', () => {
-	const booleanProperties = new Dohoo().description.properties.filter(
-		(property) => property.type === 'boolean',
-	);
+	const booleanProperties = new Dohoo().description.properties.flatMap((property) => [
+		...(property.type === 'boolean' ? [property] : []),
+		...(property.type === 'collection'
+			? property.options.filter((option) => option.type === 'boolean')
+			: []),
+	]);
 	assert.ok(booleanProperties.length > 0);
 	for (const property of booleanProperties) {
 		assert.match(property.description ?? '', /^Whether\b/);

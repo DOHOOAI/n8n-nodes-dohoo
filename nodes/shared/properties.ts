@@ -1,4 +1,41 @@
-import type { INodeProperties } from 'n8n-workflow';
+import type { IDataObject, IExecuteFunctions, INodeProperties } from 'n8n-workflow';
+
+export function additionalFieldsProperty(options: {
+	operations: string[];
+	fields: INodeProperties[];
+	displayName?: string;
+}): INodeProperties {
+	return {
+		displayName: options.displayName ?? 'Additional Fields',
+		name: 'additionalFields',
+		type: 'collection',
+		placeholder: 'Add Field',
+		default: {},
+		displayOptions: { show: { operation: options.operations } },
+		options: [...options.fields].sort((left, right) =>
+			left.displayName.localeCompare(right.displayName),
+		),
+	};
+}
+
+export function readAdditionalField<T>(
+	context: IExecuteFunctions,
+	itemIndex: number,
+	name: string,
+	defaultValue: T,
+): T {
+	const additionalFields = context.getNodeParameter(
+		'additionalFields',
+		itemIndex,
+		{},
+	) as IDataObject;
+	if (Object.prototype.hasOwnProperty.call(additionalFields, name)) {
+		return additionalFields[name] as T;
+	}
+
+	// Preserve workflows created before optional values moved into Additional Fields.
+	return context.getNodeParameter(name, itemIndex, defaultValue) as T;
+}
 
 export function connectionProperty(label: string): INodeProperties {
 	return {

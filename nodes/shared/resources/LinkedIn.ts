@@ -14,8 +14,10 @@ import { locatorValue } from '../locators';
 import { createConnectionLoader } from '../loadOptions';
 import { resolveMediaUrl } from '../media';
 import {
+	additionalFieldsProperty,
 	connectionProperty,
 	mediaSourceProperties,
+	readAdditionalField,
 	schedulingProperties,
 } from '../properties';
 import { addSchedule, publish } from '../publication';
@@ -44,7 +46,7 @@ export class LinkedInResource {
 					{
 						name: 'Publish Post',
 						value: 'publish',
-						action: 'Publish linked in post',
+						action: 'Publish linkedin post',
 						description: 'Publish text or media to a LinkedIn profile or organization',
 					},
 				],
@@ -71,15 +73,20 @@ export class LinkedInResource {
 				default: 'image',
 				displayOptions: { hide: { mediaSource: ['none'] } },
 			},
-			{
-				displayName: 'Organization ID',
-				name: 'organizationId',
-				type: 'string',
-				default: '',
-				description:
-					'Organization ID without the urn:li:organization: prefix; leave empty for a profile post',
-			},
 			...schedulingProperties(['publish']),
+			additionalFieldsProperty({
+				operations: ['publish'],
+				fields: [
+					{
+						displayName: 'Organization ID',
+						name: 'organizationId',
+						type: 'string',
+						default: '',
+						description:
+							'Organization ID without the urn:li:organization: prefix; leave empty for a profile post',
+					},
+				],
+			}),
 		],
 	};
 
@@ -96,7 +103,10 @@ export class LinkedInResource {
 			const text = String(this.getNodeParameter('text', itemIndex, ''));
 			const mediaUrl = await resolveMediaUrl(this, itemIndex);
 			if (!text && !mediaUrl) {
-				throw new NodeOperationError(this.getNode(), 'Provide text, media, or both', { itemIndex });
+				throw new NodeOperationError(this.getNode(), 'Provide text, media, or both', {
+					itemIndex,
+					description: 'Enter post text or select a media source before running the node again.',
+				});
 			}
 			const body: IDataObject = {
 				connectionId: locatorValue(this.getNodeParameter('connectionId', itemIndex)),
@@ -106,7 +116,9 @@ export class LinkedInResource {
 				body.mediaUrl = mediaUrl;
 				body.mediaType = String(this.getNodeParameter('mediaType', itemIndex));
 			}
-			const organizationId = String(this.getNodeParameter('organizationId', itemIndex, ''));
+			const organizationId = String(
+				readAdditionalField(this, itemIndex, 'organizationId', ''),
+			);
 			if (organizationId) body.organizationId = organizationId;
 			addSchedule(this, itemIndex, body);
 			return await publish(this, '/api/v2/linkedin/publish', body);

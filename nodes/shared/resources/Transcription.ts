@@ -8,7 +8,11 @@ import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import { executeForEachItem } from '../execution';
 import { resolveMediaUrl } from '../media';
-import { mediaSourceProperties } from '../properties';
+import {
+	additionalFieldsProperty,
+	mediaSourceProperties,
+	readAdditionalField,
+} from '../properties';
 import { publish } from '../publication';
 
 export class TranscriptionResource {
@@ -49,15 +53,20 @@ export class TranscriptionResource {
 				default: '',
 			},
 			...mediaSourceProperties({ operations: ['transcribe'], required: true }),
-			{
-				displayName: 'Language',
-				name: 'language',
-				type: 'string',
-				default: '',
-				placeholder: 'e.g. ru',
-				description:
-					'Optional two-letter ISO-639-1 language code; leave empty for automatic detection',
-			},
+			additionalFieldsProperty({
+				operations: ['transcribe'],
+				fields: [
+					{
+						displayName: 'Language',
+						name: 'language',
+						type: 'string',
+						default: '',
+						placeholder: 'e.g. ru',
+						description:
+							'Optional two-letter ISO-639-1 language code; leave empty for automatic detection',
+					},
+				],
+			}),
 		],
 	};
 
@@ -65,15 +74,22 @@ export class TranscriptionResource {
 		return await executeForEachItem(this, async (itemIndex) => {
 			const url = await resolveMediaUrl(this, itemIndex);
 			if (!url) {
-				throw new NodeOperationError(this.getNode(), 'A video URL is required', { itemIndex });
+				throw new NodeOperationError(this.getNode(), 'A video URL is required', {
+					itemIndex,
+					description: 'Select a video in Media Source and run the transcription again.',
+				});
 			}
 			const body: IDataObject = { url };
-			const language = String(this.getNodeParameter('language', itemIndex, '')).toLowerCase();
+			const language = String(readAdditionalField(this, itemIndex, 'language', '')).toLowerCase();
 			if (language && !/^[a-z]{2}$/.test(language)) {
 				throw new NodeOperationError(
 					this.getNode(),
 					'Language must be a two-letter ISO-639-1 code such as ru, en, or uk',
-					{ itemIndex },
+					{
+						itemIndex,
+						description:
+							'Enter a supported two-letter language code or leave Language empty for automatic detection.',
+					},
 				);
 			}
 			if (language) body.language = language;

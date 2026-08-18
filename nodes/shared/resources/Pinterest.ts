@@ -14,8 +14,10 @@ import { locatorValue } from '../locators';
 import { createConnectionLoader, getPinterestBoards, readPinterestBoards } from '../loadOptions';
 import { resolveMediaUrl } from '../media';
 import {
+	additionalFieldsProperty,
 	connectionProperty,
 	mediaSourceProperties,
+	readAdditionalField,
 	schedulingProperties,
 } from '../properties';
 import { addSchedule, publish } from '../publication';
@@ -96,37 +98,6 @@ export class PinterestResource {
 			},
 			...mediaSourceProperties({ operations: ['publish'], required: true }),
 			{
-				displayName: 'Title',
-				name: 'title',
-				type: 'string',
-				typeOptions: { maxValue: TEXT_LIMITS.pinterestTitle },
-				default: '',
-				displayOptions: { show: { operation: ['publish'] } },
-			},
-			{
-				displayName: 'Description',
-				name: 'description',
-				type: 'string',
-				typeOptions: { rows: 5, maxValue: TEXT_LIMITS.pinterestDescription },
-				default: '',
-				displayOptions: { show: { operation: ['publish'] } },
-				description: 'Pin description; supports hashtags',
-			},
-			{
-				displayName: 'Destination Link',
-				name: 'link',
-				type: 'string',
-				default: '',
-				displayOptions: { show: { operation: ['publish'] } },
-			},
-			{
-				displayName: 'Alt Text',
-				name: 'altText',
-				type: 'string',
-				default: '',
-				displayOptions: { show: { operation: ['publish'] } },
-			},
-			{
 				displayName: 'Board Name',
 				name: 'boardName',
 				type: 'string',
@@ -134,25 +105,60 @@ export class PinterestResource {
 				required: true,
 				displayOptions: { show: { operation: ['createBoard'] } },
 			},
-			{
-				displayName: 'Board Description',
-				name: 'boardDescription',
-				type: 'string',
-				default: '',
-				displayOptions: { show: { operation: ['createBoard'] } },
-			},
-			{
-				displayName: 'Privacy',
-				name: 'privacy',
-				type: 'options',
-				options: [
-					{ name: 'Public', value: 'PUBLIC' },
-					{ name: 'Secret', value: 'SECRET' },
-				],
-				default: 'PUBLIC',
-				displayOptions: { show: { operation: ['createBoard'] } },
-			},
 			...schedulingProperties(['publish']),
+			additionalFieldsProperty({
+				operations: ['publish'],
+				fields: [
+					{
+						displayName: 'Alt Text',
+						name: 'altText',
+						type: 'string',
+						default: '',
+					},
+					{
+						displayName: 'Description',
+						name: 'description',
+						type: 'string',
+						typeOptions: { rows: 5, maxValue: TEXT_LIMITS.pinterestDescription },
+						default: '',
+						description: 'Pin description; supports hashtags',
+					},
+					{
+						displayName: 'Destination Link',
+						name: 'link',
+						type: 'string',
+						default: '',
+					},
+					{
+						displayName: 'Title',
+						name: 'title',
+						type: 'string',
+						typeOptions: { maxValue: TEXT_LIMITS.pinterestTitle },
+						default: '',
+					},
+				],
+			}),
+			additionalFieldsProperty({
+				operations: ['createBoard'],
+				fields: [
+					{
+						displayName: 'Board Description',
+						name: 'boardDescription',
+						type: 'string',
+						default: '',
+					},
+					{
+						displayName: 'Privacy',
+						name: 'privacy',
+						type: 'options',
+						options: [
+							{ name: 'Public', value: 'PUBLIC' },
+							{ name: 'Secret', value: 'SECRET' },
+						],
+						default: 'PUBLIC',
+					},
+				],
+			}),
 		],
 	};
 
@@ -182,8 +188,8 @@ export class PinterestResource {
 			if (operation === 'createBoard') {
 				return await publish(this, `/api/v2/pinterest/boards/${encodeURIComponent(connectionId)}`, {
 					name: String(this.getNodeParameter('boardName', itemIndex)),
-					description: String(this.getNodeParameter('boardDescription', itemIndex, '')),
-					privacy: String(this.getNodeParameter('privacy', itemIndex)),
+					description: String(readAdditionalField(this, itemIndex, 'boardDescription', '')),
+					privacy: String(readAdditionalField(this, itemIndex, 'privacy', 'PUBLIC')),
 				});
 			}
 
@@ -191,11 +197,11 @@ export class PinterestResource {
 				connectionId,
 				boardId: locatorValue(this.getNodeParameter('boardId', itemIndex)),
 				fileUrl: await resolveMediaUrl(this, itemIndex),
-				title: String(this.getNodeParameter('title', itemIndex, '')),
-				description: String(this.getNodeParameter('description', itemIndex, '')),
+				title: String(readAdditionalField(this, itemIndex, 'title', '')),
+				description: String(readAdditionalField(this, itemIndex, 'description', '')),
 			};
-			const link = String(this.getNodeParameter('link', itemIndex, ''));
-			const altText = String(this.getNodeParameter('altText', itemIndex, ''));
+			const link = String(readAdditionalField(this, itemIndex, 'link', ''));
+			const altText = String(readAdditionalField(this, itemIndex, 'altText', ''));
 			if (link) body.link = link;
 			if (altText) body.altText = altText;
 			addSchedule(this, itemIndex, body);

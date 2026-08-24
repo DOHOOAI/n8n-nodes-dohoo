@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-dohoo",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"description": "Social media publishing for n8n: publish and schedule content to Instagram, TikTok, Facebook, YouTube, X, LinkedIn, Pinterest, and Threads with DOHOO.",
 	"license": "MIT",
 	"homepage": "https://dohoo.ai",

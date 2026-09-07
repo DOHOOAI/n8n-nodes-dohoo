@@ -3,6 +3,24 @@
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
 	"categories": ["Marketing & Content", "Data & Storage"],
+	"alias": [
+		"Social Media",
+		"Social Media Automation",
+		"Social Media Publishing",
+		"Social Media Scheduler",
+		"Instagram",
+		"TikTok",
+		"Facebook",
+		"YouTube",
+		"X",
+		"Twitter",
+		"LinkedIn",
+		"Pinterest",
+		"Threads",
+		"Reels",
+		"Stories",
+		"Carousels"
+	],
 	"resources": {
 		"credentialDocumentation": [
 			{

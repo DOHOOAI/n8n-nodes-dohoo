@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const { Dohoo } = require('../dist/nodes/Dohoo/Dohoo.node.js');
+const nodeCodex = require('../dist/nodes/Dohoo/Dohoo.node.json');
 
 const imageUrl =
 	'https://mediastorage.dohoo.ai/file/dohoo-video-storage/images/n8n-contract-test.jpg';
@@ -282,9 +283,9 @@ test('DOHOO node exposes searchable social media metadata', () => {
 		'Threads',
 	];
 
-	assert.ok(definition.codex);
+	assert.equal(definition.codex, undefined);
 	for (const alias of expectedAliases) {
-		assert.ok(definition.codex.alias.includes(alias), `Missing search alias: ${alias}`);
+		assert.ok(nodeCodex.alias.includes(alias), `Missing search alias: ${alias}`);
 	}
 	assert.match(definition.description, /publish and schedule/i);
 });

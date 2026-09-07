@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.4 - 2026-09-07
+
+- Moved node search aliases from the inline TypeScript description to the external Codex JSON file, as required by n8n verification.
+
+## 0.2.3 - 2026-09-04
+
+- Updated the Codex node identifier to the fully qualified `n8n-nodes-dohoo.dohoo` format.
+
 ## 0.2.2 - 2026-08-18
 
 - Aligned Facebook publishing with the DOHOO API by exposing only photo, video, and text media types.

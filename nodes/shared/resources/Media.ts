@@ -23,7 +23,7 @@ export class MediaResource {
 		...{ group: ['input', 'output'] },
 		version: 1,
 		subtitle: '={{$parameter["operation"]}}',
-		description: 'Upload and inspect files in the DOHOO media library',
+		description: 'Upload, inspect, and delete files in the DOHOO media library',
 		defaults: { name: 'DOHOO Media' },
 		inputs: [NodeConnectionTypes.Main],
 		outputs: [NodeConnectionTypes.Main],
@@ -36,6 +36,12 @@ export class MediaResource {
 				type: 'options',
 				noDataExpression: true,
 				options: [
+					{
+						name: 'Delete File',
+						value: 'delete',
+						action: 'Delete a DOHOO file',
+						description: 'Permanently delete an uploaded file from the DOHOO media library',
+					},
 					{
 						name: 'Get File URL',
 						value: 'getUrl',
@@ -77,7 +83,8 @@ export class MediaResource {
 				typeOptions: { minValue: 1 },
 				default: 0,
 				required: true,
-				displayOptions: { show: { operation: ['getUrl', 'getStatus'] } },
+				description: 'Numeric ID of the DOHOO file to inspect or permanently delete',
+				displayOptions: { show: { operation: ['delete', 'getUrl', 'getStatus'] } },
 			},
 			additionalFieldsProperty({
 				operations: ['list'],
@@ -164,6 +171,16 @@ export class MediaResource {
 			}
 
 			const fileId = Number(this.getNodeParameter('targetFileId', itemIndex));
+			if (operation === 'delete') {
+				const response = asDataObject(
+					await dohooApiRequest(this, 'DELETE', `/api/upload/file/${fileId}`),
+				);
+				return {
+					...response,
+					success: response.success ?? true,
+					fileId: response.fileId ?? fileId,
+				};
+			}
 			if (operation === 'getStatus') {
 				const response = asDataObject(
 					await dohooApiRequest(this, 'GET', `/api/upload/status/${fileId}`),
@@ -173,8 +190,11 @@ export class MediaResource {
 					file: await normalizeFileForOutput(this, itemIndex, response),
 				};
 			}
-			const fileUrl = await resolveFileIdMediaUrl(this, itemIndex, fileId);
-			return { success: true, fileId, fileUrl, readyForPublish: true };
+			if (operation === 'getUrl') {
+				const fileUrl = await resolveFileIdMediaUrl(this, itemIndex, fileId);
+				return { success: true, fileId, fileUrl, readyForPublish: true };
+			}
+			throw new Error(`Unsupported DOHOO Media operation: ${operation}`);
 		});
 	}
 }

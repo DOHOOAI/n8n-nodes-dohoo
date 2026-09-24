@@ -37,7 +37,7 @@ Install `n8n-nodes-dohoo` from the Community Nodes settings in n8n, or follow th
 | LinkedIn        | Publish to a profile or organization; schedule a post                              |
 | Pinterest       | Publish a pin; list boards; create a board; schedule a pin                         |
 | Threads         | Publish text and optional media; schedule a post                                   |
-| Media           | Upload binary data or copy an HTTPS file; list files; resolve file URLs and status |
+| Media           | Upload binary data or copy an HTTPS file; list, inspect, and permanently delete files |
 | Scheduled Posts | List pending, published, or failed scheduled posts                                 |
 | Transcription   | Transcribe a video stored in the DOHOO media library                               |
 
@@ -119,6 +119,8 @@ The node never passes the legacy `https://dohoo.ai/api/upload/file/...` redirect
 
 Carousel operations take existing completed DOHOO URLs. Use **DOHOO → Media → Upload File** once per image, then map the returned `fileUrl` values into the carousel operation.
 
+Use **DOHOO → Media → Delete File** with a numeric file ID to permanently remove an uploaded file from the DOHOO media library. This operation is destructive and cannot be undone.
+
 ## Scheduling
 
 For DOHOO scheduling, select **Schedule**, choose a future date, and supply an IANA timezone such as `Europe/Kiev`. The node converts offset-based n8n date values to the local wall-clock value expected by the DOHOO scheduler.
@@ -160,6 +162,7 @@ This package targets n8n 2.x and requires Node.js 22.22.0 or newer. It is built 
 
 ## Version history
 
+- `0.2.5` — added permanent file deletion to the Media resource.
 - `0.2.2` — aligned Facebook media types with the DOHOO API and improved n8n/npm discovery metadata.
 - `0.2.1` — refreshed the n8n verification toolchain and published source metadata.
 - `0.2.0` — initial public candidate with one unified DOHOO node, list-first resource locators, compact output modes, canonical media handling, scheduling, and transcription.

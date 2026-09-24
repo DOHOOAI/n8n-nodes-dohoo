@@ -490,6 +490,19 @@ test('Media URL and existing-media upload operations return canonical URLs', asy
 	assert.equal(uploadOutput[0][0].json.readyForPublish, true);
 });
 
+test('Media Delete File uses the documented destructive endpoint', async () => {
+	const deletion = makeContext(
+		{ resource: 'media', operation: 'delete', targetFileId: 47 },
+		async () => ({ success: true, message: 'File deleted' }),
+	);
+	const output = await new Dohoo().execute.call(deletion.context);
+	assert.equal(deletion.apiCalls.length, 1);
+	assert.equal(deletion.apiCalls[0].method, 'DELETE');
+	assert.equal(deletion.apiCalls[0].url, '/api/upload/file/47');
+	assert.equal(output[0][0].json.success, true);
+	assert.equal(output[0][0].json.fileId, 47);
+});
+
 test('Scheduled Posts sends filters as query parameters', async () => {
 	const { context, apiCalls } = makeContext(
 		{
@@ -588,7 +601,7 @@ test('Output modes simplify or select fields without losing an available ID', as
 	assert.deepEqual(selectedOutput[0][0].json, { id: 'post-1', status: 'published' });
 });
 
-test('all 21 visible operations are covered by the package descriptors', () => {
+test('all 22 visible operations are covered by the package descriptors', () => {
 	const expected = new Map([
 		['instagram', ['publish', 'publishCarousel']],
 		['facebook', ['publish', 'publishStory']],
@@ -598,7 +611,7 @@ test('all 21 visible operations are covered by the package descriptors', () => {
 		['linkedin', ['publish']],
 		['pinterest', ['publish', 'listBoards', 'createBoard']],
 		['threads', ['publish']],
-		['media', ['getUrl', 'getLatest', 'getStatus', 'list', 'upload']],
+		['media', ['delete', 'getUrl', 'getLatest', 'getStatus', 'list', 'upload']],
 		['scheduledPosts', ['list']],
 		['transcription', ['transcribe']],
 	]);
@@ -615,7 +628,7 @@ test('all 21 visible operations are covered by the package descriptors', () => {
 		assert.deepEqual(actual, operations);
 		count += actual.length;
 	}
-	assert.equal(count, 21);
+	assert.equal(count, 22);
 	const resource = description.properties.find((candidate) => candidate.name === 'resource');
 	assert.equal(resource.options.length, 11);
 });

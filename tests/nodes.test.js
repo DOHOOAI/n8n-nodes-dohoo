@@ -6,6 +6,7 @@ const nodeCodex = require('../dist/nodes/Dohoo/Dohoo.node.json');
 
 const imageUrl =
 	'https://mediastorage.dohoo.ai/file/dohoo-video-storage/images/n8n-contract-test.jpg';
+const externalPhotoUrl = 'https://example.com/facebook-photo.png';
 const videoUrl =
 	'https://mediastorage.dohoo.ai/file/dohoo-video-storage/videos/n8n-contract-test.mp4';
 
@@ -77,6 +78,45 @@ const nodeCases = [
 		checkBody: (body) => {
 			assert.equal(body.fileUrl, videoUrl);
 			assert.equal(body.mediaType, 'video');
+		},
+	},
+	{
+		name: 'Facebook photo carousel',
+		resource: 'facebook',
+		params: {
+			operation: 'publishCarousel',
+			connectionId: '155',
+			mediaItems: { items: [{ url: externalPhotoUrl }, { url: imageUrl }] },
+			additionalFields: { caption: '' },
+			publishMode: 'now',
+		},
+		path: '/api/v2/facebook/publish',
+		checkBody: (body) => {
+			assert.equal(body.facebookPageId, '155');
+			assert.equal(body.mediaType, 'carousel');
+			assert.deepEqual(body.mediaUrls, [externalPhotoUrl, imageUrl]);
+			assert.equal(body.caption, '');
+			assert.equal(body.fileUrl, undefined);
+		},
+	},
+	{
+		name: 'Facebook scheduled photo carousel',
+		resource: 'facebook',
+		params: {
+			operation: 'publishCarousel',
+			connectionId: '155',
+			mediaItems: { items: [{ url: externalPhotoUrl }, { url: imageUrl }] },
+			additionalFields: { caption: 'Scheduled photos' },
+			publishMode: 'schedule',
+			scheduledAt: '2099-07-01T14:30:00+03:00',
+			timezone: 'Europe/Kiev',
+		},
+		path: '/api/v2/facebook/publish',
+		checkBody: (body) => {
+			assert.equal(body.scheduledAt, '2099-07-01T11:30:00.000Z');
+			assert.equal(body.timezone, 'Europe/Kiev');
+			assert.equal(body.mediaType, 'carousel');
+			assert.equal(body.fileUrl, undefined);
 		},
 	},
 	{
@@ -343,6 +383,47 @@ for (const nodeCase of nodeCases) {
 	});
 }
 
+test('Facebook carousel rejects an invalid media entry before publishing', async () => {
+	const { context, apiCalls } = makeContext({
+		resource: 'facebook',
+		operation: 'publishCarousel',
+		connectionId: '155',
+		mediaItems: { items: [{ url: externalPhotoUrl }, { url: '' }, { url: imageUrl }] },
+		publishMode: 'now',
+	});
+	await assert.rejects(new Dohoo().execute.call(context), /Media URL 2 is empty/);
+	assert.equal(apiCalls.length, 0);
+});
+
+test('Facebook carousel requires an explicit instant for scheduling', async () => {
+	const { context, apiCalls } = makeContext({
+		resource: 'facebook',
+		operation: 'publishCarousel',
+		connectionId: '155',
+		mediaItems: { items: [{ url: externalPhotoUrl }, { url: imageUrl }] },
+		publishMode: 'schedule',
+		scheduledAt: '2099-07-01T14:30:00',
+		timezone: 'Europe/Kiev',
+	});
+	await assert.rejects(new Dohoo().execute.call(context), /UTC Z or an explicit offset/);
+	assert.equal(apiCalls.length, 0);
+});
+
+test('Facebook carousel uncertain result tells the user to check the Page', async () => {
+	const { context } = makeContext({
+		resource: 'facebook',
+		operation: 'publishCarousel',
+		connectionId: '155',
+		mediaItems: { items: [{ url: externalPhotoUrl }, { url: imageUrl }] },
+		publishMode: 'now',
+	}, async () => ({
+		success: false,
+		error_code: 'FACEBOOK_CAROUSEL_RESULT_UNKNOWN',
+		error: 'Provider timed out',
+	}));
+	await assert.rejects(new Dohoo().execute.call(context), /Check the Facebook Page before retrying/);
+});
+
 test('TikTok video rejects a non-numeric connection ID before calling the publication API', async () => {
 	const { context, apiCalls } = makeContext({
 		resource: 'tiktok',
@@ -601,10 +682,10 @@ test('Output modes simplify or select fields without losing an available ID', as
 	assert.deepEqual(selectedOutput[0][0].json, { id: 'post-1', status: 'published' });
 });
 
-test('all 22 visible operations are covered by the package descriptors', () => {
+test('all 23 visible operations are covered by the package descriptors', () => {
 	const expected = new Map([
 		['instagram', ['publish', 'publishCarousel']],
-		['facebook', ['publish', 'publishStory']],
+		['facebook', ['publish', 'publishCarousel', 'publishStory']],
 		['tiktok', ['publishVideo', 'publishCarousel']],
 		['youtube', ['publish', 'setThumbnail']],
 		['x', ['publish']],
@@ -628,7 +709,7 @@ test('all 22 visible operations are covered by the package descriptors', () => {
 		assert.deepEqual(actual, operations);
 		count += actual.length;
 	}
-	assert.equal(count, 22);
+	assert.equal(count, 23);
 	const resource = description.properties.find((candidate) => candidate.name === 'resource');
 	assert.equal(resource.options.length, 11);
 });

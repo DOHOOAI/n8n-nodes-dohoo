@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.6 - 2026-10-04
+
+- Added Facebook Page photo carousel publication and scheduling with 2–10 public JPEG/PNG URLs.
+- Preserved ISO instants for carousel schedules and clarified uncertain Facebook publication errors.
+
 ## 0.2.4 - 2026-09-07
 
 - Moved node search aliases from the inline TypeScript description to the external Codex JSON file, as required by n8n verification.

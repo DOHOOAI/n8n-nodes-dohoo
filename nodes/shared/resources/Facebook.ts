@@ -12,15 +12,19 @@ import { PLATFORM_CODES, TEXT_LIMITS } from '../constants';
 import { executeForEachItem } from '../execution';
 import { locatorValue } from '../locators';
 import { createConnectionLoader } from '../loadOptions';
-import { resolveMediaUrl } from '../media';
+import { resolveDohooMediaUrl, resolveMediaUrl } from '../media';
 import {
 	additionalFieldsProperty,
 	connectionProperty,
+	fixedMediaUrlsProperty,
 	mediaSourceProperties,
 	readAdditionalField,
 	schedulingProperties,
 } from '../properties';
-import { addSchedule, publish } from '../publication';
+import { addSchedule, publish, readFixedMediaUrls } from '../publication';
+import { validatePublicExternalUrl } from '../urlSecurity';
+
+const publishOperations = ['publish', 'publishCarousel'];
 
 export class FacebookResource {
 	definition: INodeTypeDescription = {
@@ -50,6 +54,12 @@ export class FacebookResource {
 						description: 'Publish text, an image, or a video to a Facebook page',
 					},
 					{
+						name: 'Publish Photo Carousel',
+						value: 'publishCarousel',
+						action: 'Publish facebook page photo carousel',
+						description: 'Publish or schedule two to ten JPEG or PNG photos as one Facebook page post',
+					},
+					{
 						name: 'Publish Story',
 						value: 'publishStory',
 						action: 'Publish facebook story',
@@ -61,6 +71,12 @@ export class FacebookResource {
 			connectionProperty('Facebook'),
 			...mediaSourceProperties({ operations: ['publish'], required: false }),
 			...mediaSourceProperties({ operations: ['publishStory'], required: true }),
+			fixedMediaUrlsProperty({
+				operation: 'publishCarousel',
+				minimum: 2,
+				maximum: 10,
+				description: 'Two to ten ordered public HTTPS JPEG or PNG photo URLs. Each photo must be at most 10,000,000 bytes and 40,000,000 pixels. Keep URLs available until scheduled execution.',
+			}),
 			{
 				displayName: 'Media Type',
 				name: 'mediaType',
@@ -88,8 +104,17 @@ export class FacebookResource {
 				displayOptions: { show: { operation: ['publishStory'] } },
 			},
 			...schedulingProperties(['publish']),
+			...schedulingProperties(['publishCarousel']).map((property) => {
+				if (property.name === 'scheduledAt') {
+					return { ...property, description: 'Future ISO 8601 instant with UTC Z or an explicit offset.' };
+				}
+				if (property.name === 'timezone') {
+					return { ...property, description: 'Display timezone; does not reinterpret Scheduled At.' };
+				}
+				return property;
+			}),
 			additionalFieldsProperty({
-				operations: ['publish'],
+				operations: publishOperations,
 				fields: [
 					{
 						displayName: 'Caption',
@@ -115,6 +140,32 @@ export class FacebookResource {
 		return await executeForEachItem(this, async (itemIndex) => {
 			const operation = String(this.getNodeParameter('operation', itemIndex));
 			const connectionId = locatorValue(this.getNodeParameter('connectionId', itemIndex));
+			if (operation === 'publishCarousel') {
+				const urls = readFixedMediaUrls(this, itemIndex, 2, 10);
+				const mediaUrls = await Promise.all(urls.map(async (url) => {
+					const validation = validatePublicExternalUrl(url);
+					if (!validation.url) throw new Error(validation.error ?? 'Enter a public HTTPS photo URL');
+					return validation.url.hostname === 'dohoo.ai' || validation.url.hostname === 'mediastorage.dohoo.ai'
+						? await resolveDohooMediaUrl(this, itemIndex, url)
+						: url;
+				}));
+				const body: IDataObject = {
+					facebookPageId: connectionId,
+					mediaType: 'carousel',
+					mediaUrls,
+					caption: String(readAdditionalField(this, itemIndex, 'caption', '')),
+				};
+				if (this.getNodeParameter('publishMode', itemIndex, 'now') === 'schedule') {
+					const scheduledAt = String(this.getNodeParameter('scheduledAt', itemIndex));
+					if (!/(?:Z|[+-]\d{2}:\d{2})$/i.test(scheduledAt) || !Number.isFinite(Date.parse(scheduledAt))) {
+						throw new Error('Scheduled At must be an ISO 8601 instant with UTC Z or an explicit offset');
+					}
+					if (Date.parse(scheduledAt) <= Date.now()) throw new Error('Scheduled At must be in the future');
+					body.scheduledAt = new Date(scheduledAt).toISOString();
+					body.timezone = String(this.getNodeParameter('timezone', itemIndex, 'UTC'));
+				}
+				return await publish(this, '/api/v2/facebook/publish', body);
+			}
 			const mediaUrl = await resolveMediaUrl(this, itemIndex);
 			if (operation === 'publishStory') {
 				return await publish(this, '/api/v1/facebook/publish/story', {

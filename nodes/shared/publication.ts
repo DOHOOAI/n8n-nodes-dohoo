@@ -43,13 +43,16 @@ export async function publish(
 ): Promise<IDataObject> {
 	const response = asDataObject(await dohooApiRequest(context, 'POST', path, body));
 	if (response.success === false || response.blocked === true) {
+		const code = typeof response.error_code === 'string' ? response.error_code : '';
+		const uncertain = code === 'FACEBOOK_CAROUSEL_RESULT_UNKNOWN' ||
+			code === 'FACEBOOK_CAROUSEL_ATTEMPT_UNRESOLVED';
 		throw new Error(
-			String(
+			`${code ? `${code}: ` : ''}${String(
 				response.error ??
 					response.errorMessage ??
 					response.message ??
 					'DOHOO rejected the operation',
-			),
+			)}${uncertain ? ' Check the Facebook Page before retrying; the post may already exist.' : ''}`,
 		);
 	}
 	return response;
@@ -123,14 +126,21 @@ export function readFixedMediaUrls(
 ): string[] {
 	const collection = context.getNodeParameter('mediaItems', itemIndex, {}) as IDataObject;
 	const entries = asDataObjectArray(collection.items);
-	const urls = entries.map((entry) => String(entry.url ?? '')).filter(Boolean);
+	const urls = entries.map((entry) => String(entry.url ?? '').trim());
+	const emptyIndex = urls.findIndex((url) => !url);
+	if (emptyIndex >= 0) {
+		throw new NodeOperationError(context.getNode(), `Media URL ${emptyIndex + 1} is empty`, {
+			itemIndex,
+			description: 'Fill every media item with a public HTTPS URL.',
+		});
+	}
 	if (urls.length < minimum || urls.length > maximum) {
 		throw new NodeOperationError(
 			context.getNode(),
 			`Provide between ${minimum} and ${maximum} media URLs`,
 			{
 				itemIndex,
-				description: `Add at least ${minimum} and no more than ${maximum} completed DOHOO media URLs.`,
+				description: `Add at least ${minimum} and no more than ${maximum} public HTTPS media URLs.`,
 			},
 		);
 	}

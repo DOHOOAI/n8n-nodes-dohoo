@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.7 - 2026-11-03
+
+- Added optional YouTube audio language, text language, synthetic media disclosure, and paid product placement fields to immediate, native scheduled, and DOHOO scheduled publication.
+- Preserved explicit false disclosure values in YouTube API requests.
+
 ## 0.2.6 - 2026-10-04
 
 - Added Facebook Page photo carousel publication and scheduling with 2–10 public JPEG/PNG URLs.

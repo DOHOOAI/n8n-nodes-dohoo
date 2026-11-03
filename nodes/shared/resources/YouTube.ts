@@ -122,6 +122,36 @@ export class YouTubeResource {
 						default: '',
 					},
 					{
+						displayName: 'Default Audio Language',
+						name: 'defaultAudioLanguage',
+						type: 'string',
+						default: '',
+						placeholder: 'e.g. uk or en-US',
+						description: 'Language of the default audio track; does not translate or dub audio',
+					},
+					{
+						displayName: 'Default Language',
+						name: 'defaultLanguage',
+						type: 'string',
+						default: '',
+						placeholder: 'e.g. uk',
+						description: 'Language of the title and description; does not translate text',
+					},
+					{
+						displayName: 'Contains Synthetic Media',
+						name: 'containsSyntheticMedia',
+						type: 'boolean',
+						default: false,
+						description: 'Whether the video contains realistic altered or synthetic content; not a general flag for any use of AI',
+					},
+					{
+						displayName: 'Has Paid Product Placement',
+						name: 'hasPaidProductPlacement',
+						type: 'boolean',
+						default: false,
+						description: 'Whether the video contains paid placement, sponsorship, or endorsement; does not enable monetization',
+					},
+					{
 						displayName: 'Tags',
 						name: 'tags',
 						type: 'string',
@@ -201,6 +231,19 @@ export class YouTubeResource {
 				visibility: String(readAdditionalField(this, itemIndex, 'visibility', 'public')),
 				category: String(readAdditionalField(this, itemIndex, 'category', '22')),
 			};
+			const additionalFields = this.getNodeParameter('additionalFields', itemIndex, {}) as IDataObject;
+			for (const field of ['defaultAudioLanguage', 'defaultLanguage'] as const) {
+				const value = additionalFields[field];
+				if (typeof value === 'string' && value.trim()) body[field] = value.trim();
+			}
+			for (const field of ['containsSyntheticMedia', 'hasPaidProductPlacement'] as const) {
+				const value = additionalFields[field];
+				if (value === undefined) continue;
+				if (typeof value !== 'boolean') {
+					throw new NodeOperationError(this.getNode(), `${field} must be a boolean`, { itemIndex });
+				}
+				body[field] = value;
+			}
 			const tags = String(readAdditionalField(this, itemIndex, 'tags', ''))
 				.split(',')
 				.map((tag) => tag.trim())

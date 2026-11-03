@@ -194,6 +194,9 @@ const nodeCases = [
 		checkBody: (body) => {
 			assert.equal(body.fileUrl, videoUrl);
 			assert.deepEqual(body.tags, ['n8n', 'dohoo']);
+			for (const field of ['defaultAudioLanguage', 'defaultLanguage', 'containsSyntheticMedia', 'hasPaidProductPlacement']) {
+				assert.equal(Object.hasOwn(body, field), false);
+			}
 		},
 	},
 	{
@@ -382,6 +385,41 @@ for (const nodeCase of nodeCases) {
 		nodeCase.checkBody(call.body);
 	});
 }
+
+test('YouTube optional disclosures and languages reach all publish modes', async () => {
+	const cases = [
+		{ mode: 'now', containsSyntheticMedia: true, hasPaidProductPlacement: false },
+		{ mode: 'dohoo', containsSyntheticMedia: false, hasPaidProductPlacement: true },
+		{ mode: 'youtube', containsSyntheticMedia: false, hasPaidProductPlacement: false },
+	];
+	for (const entry of cases) {
+		const { context, apiCalls } = makeContext({
+			resource: 'youtube',
+			operation: 'publish',
+			connectionId: 'youtube-1',
+			mediaSource: 'dohooUrl',
+			mediaUrl: videoUrl,
+			title: 'Metadata test',
+			publishMode: entry.mode,
+			scheduledAt: '2099-07-01T14:30:00',
+			timezone: 'UTC',
+			publishAt: '2099-07-01T14:30:00Z',
+			additionalFields: {
+				visibility: 'private',
+				defaultAudioLanguage: 'uk',
+				defaultLanguage: 'en-US',
+				containsSyntheticMedia: entry.containsSyntheticMedia,
+				hasPaidProductPlacement: entry.hasPaidProductPlacement,
+			},
+		});
+		await new Dohoo().execute.call(context);
+		const body = apiCalls.at(-1).body;
+		assert.equal(body.defaultAudioLanguage, 'uk');
+		assert.equal(body.defaultLanguage, 'en-US');
+		assert.equal(body.containsSyntheticMedia, entry.containsSyntheticMedia);
+		assert.equal(body.hasPaidProductPlacement, entry.hasPaidProductPlacement);
+	}
+});
 
 test('Facebook carousel rejects an invalid media entry before publishing', async () => {
 	const { context, apiCalls } = makeContext({

@@ -1,9 +1,14 @@
 # Changelog
 
-## 0.2.7 - 2026-11-03
+## 0.2.8 - 2026-11-03
 
 - Added optional YouTube audio language, text language, synthetic media disclosure, and paid product placement fields to immediate, native scheduled, and DOHOO scheduled publication.
 - Preserved explicit false disclosure values in YouTube API requests.
+- Pinned the release workflow to Node.js 24 after Node.js 26 broke the native `isolated-vm` dependency during the unpublished 0.2.7 release attempt.
+
+## 0.2.7 - 2026-11-03 (not published to npm)
+
+- The release attempt failed while installing dependencies with Node.js 26; no package was published.
 
 ## 0.2.6 - 2026-10-04
 

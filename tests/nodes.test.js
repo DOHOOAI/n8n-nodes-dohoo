@@ -277,6 +277,57 @@ const nodeCases = [
 		checkBody: (body) => assert.equal(body.mediaType, 'text'),
 	},
 	{
+		name: 'Threads multipost',
+		resource: 'threads',
+		params: {
+			operation: 'publishMultipost',
+			connectionId: 'threads-1',
+			mediaSource: 'none',
+			text: 'Root post',
+			replies: { items: [{ text: 'First reply' }, { text: 'Second reply' }] },
+			publishMode: 'now',
+		},
+		path: '/api/v2/threads/multipost',
+		checkBody: (body) => {
+			assert.equal(body.connectionId, 'threads-1');
+			assert.equal(body.text, 'Root post');
+			assert.deepEqual(body.replies, ['First reply', 'Second reply']);
+			assert.equal(body.scheduledAt, undefined);
+		},
+	},
+	{
+		name: 'Threads scheduled multipost with advanced reply',
+		resource: 'threads',
+		params: {
+			operation: 'publishMultipost',
+			connectionId: 'threads-1',
+			mediaSource: 'dohooUrl',
+			mediaUrl: imageUrl,
+			mediaType: 'photo',
+			text: 'Photo root',
+			replies: {
+				items: [
+					{ text: 'First reply', advancedFields: '{"topic_tag":"n8n"}' },
+					{ text: 'Second reply', advancedFields: { poll_attachment: { option_a: 'Yes', option_b: 'No' } } },
+				],
+			},
+			publishMode: 'schedule',
+			scheduledAt: '2099-07-01T14:30:00+03:00',
+			timezone: 'Europe/Kiev',
+		},
+		path: '/api/v2/threads/multipost',
+		checkBody: (body) => {
+			assert.equal(body.mediaUrl, imageUrl);
+			assert.equal(body.mediaType, 'photo');
+			assert.deepEqual(body.replies, [
+				{ text: 'First reply', topic_tag: 'n8n' },
+				{ text: 'Second reply', poll_attachment: { option_a: 'Yes', option_b: 'No' } },
+			]);
+			assert.equal(body.scheduledAt, '2099-07-01T14:30:00');
+			assert.equal(body.timezone, 'Europe/Kiev');
+		},
+	},
+	{
 		name: 'Transcription',
 		resource: 'transcription',
 		params: {
@@ -460,6 +511,43 @@ test('Facebook carousel uncertain result tells the user to check the Page', asyn
 		error: 'Provider timed out',
 	}));
 	await assert.rejects(new Dohoo().execute.call(context), /Check the Facebook Page before retrying/);
+});
+
+for (const [label, replies, error] of [
+	['missing replies', { items: [] }, /between 1 and 4 Threads replies/],
+	['too many replies', { items: Array.from({ length: 5 }, () => ({ text: 'Reply' })) }, /between 1 and 4 Threads replies/],
+	['empty reply', { items: [{ text: '' }] }, /reply 1 must contain/],
+	['invalid advanced JSON', { items: [{ text: 'Reply', advancedFields: '{' }] }, /reply 1 has invalid JSON/],
+	['media in a reply', { items: [{ text: 'Reply', advancedFields: '{"mediaUrl":"https://example.com/image.jpg"}' }] }, /does not support mediaUrl/],
+	['conflicting attachments', { items: [{ text: 'Reply', advancedFields: '{"text_attachment":{},"poll_attachment":{}}' }] }, /cannot combine text_attachment and poll_attachment/],
+]) {
+	test(`Threads multipost rejects ${label} before publishing`, async () => {
+		const { context, apiCalls } = makeContext({
+			resource: 'threads',
+			operation: 'publishMultipost',
+			connectionId: 'threads-1',
+			mediaSource: 'none',
+			text: 'Root',
+			replies,
+			publishMode: 'now',
+		});
+		await assert.rejects(new Dohoo().execute.call(context), error);
+		assert.equal(apiCalls.length, 0);
+	});
+}
+
+test('Threads multipost warns about already published replies on a partial failure', async () => {
+	const { context, apiCalls } = makeContext({
+		resource: 'threads',
+		operation: 'publishMultipost',
+		connectionId: 'threads-1',
+		mediaSource: 'none',
+		text: 'Root',
+		replies: { items: [{ text: 'First reply' }, { text: 'Second reply' }] },
+		publishMode: 'now',
+	}, async () => ({ success: false, error: 'Second reply failed' }));
+	await assert.rejects(new Dohoo().execute.call(context), /check Threads before retrying/);
+	assert.equal(apiCalls.length, 1);
 });
 
 test('TikTok video rejects a non-numeric connection ID before calling the publication API', async () => {
@@ -720,7 +808,7 @@ test('Output modes simplify or select fields without losing an available ID', as
 	assert.deepEqual(selectedOutput[0][0].json, { id: 'post-1', status: 'published' });
 });
 
-test('all 23 visible operations are covered by the package descriptors', () => {
+test('all 24 visible operations are covered by the package descriptors', () => {
 	const expected = new Map([
 		['instagram', ['publish', 'publishCarousel']],
 		['facebook', ['publish', 'publishCarousel', 'publishStory']],
@@ -729,7 +817,7 @@ test('all 23 visible operations are covered by the package descriptors', () => {
 		['x', ['publish']],
 		['linkedin', ['publish']],
 		['pinterest', ['publish', 'listBoards', 'createBoard']],
-		['threads', ['publish']],
+		['threads', ['publish', 'publishMultipost']],
 		['media', ['delete', 'getUrl', 'getLatest', 'getStatus', 'list', 'upload']],
 		['scheduledPosts', ['list']],
 		['transcription', ['transcribe']],
@@ -747,7 +835,7 @@ test('all 23 visible operations are covered by the package descriptors', () => {
 		assert.deepEqual(actual, operations);
 		count += actual.length;
 	}
-	assert.equal(count, 23);
+	assert.equal(count, 24);
 	const resource = description.properties.find((candidate) => candidate.name === 'resource');
 	assert.equal(resource.options.length, 11);
 });

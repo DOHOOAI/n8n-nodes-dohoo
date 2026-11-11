@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.9 - 2026-11-11
+
+- Added Threads Publish Multipost for immediate and scheduled publication through `/api/v2/threads/multipost`.
+- Added 1–4 ordered text replies with optional advanced reply fields for attachments, spoiler ranges, polls, and topic tags.
+- Validated reply count, text length, and unsupported reply media before calling the publication API.
+
 ## 0.2.8 - 2026-11-03
 
 - Added optional YouTube audio language, text language, synthetic media disclosure, and paid product placement fields to immediate, native scheduled, and DOHOO scheduled publication.

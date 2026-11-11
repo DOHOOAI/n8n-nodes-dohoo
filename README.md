@@ -36,7 +36,7 @@ Install `n8n-nodes-dohoo` from the Community Nodes settings in n8n, or follow th
 | X               | Publish text and/or media; schedule a post                                         |
 | LinkedIn        | Publish to a profile or organization; schedule a post                              |
 | Pinterest       | Publish a pin; list boards; create a board; schedule a pin                         |
-| Threads         | Publish text and optional media; schedule a post                                   |
+| Threads         | Publish text and optional media; publish a multipost with 1–4 replies; schedule either operation |
 | Media           | Upload binary data or copy an HTTPS file; list, inspect, and permanently delete files |
 | Scheduled Posts | List pending, published, or failed scheduled posts                                 |
 | Transcription   | Transcribe a video stored in the DOHOO media library                               |
@@ -90,6 +90,13 @@ YouTube-native scheduling requires the video visibility to be **Private**.
 2. Select the Pinterest account, then select a board from the dependent board locator.
 3. Choose the media source and enter the title, description, destination link, and alt text.
 4. Publish immediately or select **Schedule**.
+
+### Publish a Threads multipost
+
+1. Add **DOHOO → Threads → Publish Multipost** and select the Threads account.
+2. Enter the root post text and, optionally, a photo or video source.
+3. Add 1–4 text replies under **Replies** in publication order. To attach a poll, long-form text, spoiler ranges, or topic tag to an individual reply, enter the supported API fields as an object in **Advanced Reply Fields (JSON)** for that reply.
+4. Choose **Publish Now** or **Schedule**. The account needs the `threads_manage_replies` permission. If a later reply fails, already published posts remain on Threads; inspect the account before retrying.
 
 ### Transcribe a completed video
 
@@ -166,6 +173,7 @@ This package targets n8n 2.x and requires Node.js 22.22.0 or newer. It is built 
 
 ## Version history
 
+- `0.2.9` — added immediate and scheduled Threads multipost publication with 1–4 ordered replies.
 - `0.2.6` — added Facebook Page photo carousel publication and scheduling.
 - `0.2.5` — added permanent file deletion to the Media resource.
 - `0.2.2` — aligned Facebook media types with the DOHOO API and improved n8n/npm discovery metadata.

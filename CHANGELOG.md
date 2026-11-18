@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.10 - 2026-11-18
+
+- Added Scheduled Posts → Get Post to inspect a job before changing or cancelling it.
+- Added Scheduled Posts → Cancel Post with a required confirmation toggle. Cancellation calls `DELETE /api/scheduled-posts/{id}` and leaves uploaded media and already published social posts intact.
+
 ## 0.2.9 - 2026-11-11
 
 - Added Threads Publish Multipost for immediate and scheduled publication through `/api/v2/threads/multipost`.

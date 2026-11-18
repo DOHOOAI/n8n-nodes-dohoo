@@ -18,7 +18,7 @@ export class ScheduledPostsResource {
 		...{ group: ['input'] },
 		version: 1,
 		subtitle: '={{$parameter["operation"]}}',
-		description: 'List posts created through the DOHOO scheduler',
+		description: 'List, inspect, and cancel posts created through the DOHOO scheduler',
 		defaults: { name: 'DOHOO Scheduled Posts' },
 		inputs: [NodeConnectionTypes.Main],
 		outputs: [NodeConnectionTypes.Main],
@@ -32,6 +32,18 @@ export class ScheduledPostsResource {
 				noDataExpression: true,
 				options: [
 					{
+						name: 'Cancel Post',
+						value: 'cancel',
+						action: 'Cancel a DOHOO scheduled post',
+						description: 'Cancel a scheduled job by its DOHOO ID; media and already published posts remain',
+					},
+					{
+						name: 'Get Post',
+						value: 'get',
+						action: 'Get a DOHOO scheduled post',
+						description: 'Read the full details of one scheduled job by its DOHOO ID',
+					},
+					{
 						name: 'List Posts',
 						value: 'list',
 						action: 'List DOHOO scheduled posts',
@@ -39,6 +51,24 @@ export class ScheduledPostsResource {
 					},
 				],
 				default: 'list',
+			},
+			{
+				displayName: 'Scheduled Post ID',
+				name: 'scheduledPostId',
+				type: 'number',
+				typeOptions: { minValue: 1 },
+				default: 0,
+				required: true,
+				description: 'Numeric DOHOO scheduled-job ID from List Posts or a scheduling response, not a social-platform post ID',
+				displayOptions: { show: { operation: ['get', 'cancel'] } },
+			},
+			{
+				displayName: 'Confirm Cancellation',
+				name: 'confirmCancellation',
+				type: 'boolean',
+				default: false,
+				description: 'Whether the user confirmed cancellation of this job or explicitly requested a change that requires replacing it',
+				displayOptions: { show: { operation: ['cancel'] } },
 			},
 			{
 				displayName: 'Period',
@@ -51,6 +81,7 @@ export class ScheduledPostsResource {
 					{ name: 'Custom', value: 'custom' },
 				],
 				default: 'week',
+				displayOptions: { show: { operation: ['list'] } },
 			},
 			{
 				displayName: 'From',
@@ -58,7 +89,7 @@ export class ScheduledPostsResource {
 				type: 'dateTime',
 				default: '',
 				required: true,
-				displayOptions: { show: { period: ['custom'] } },
+				displayOptions: { show: { operation: ['list'], period: ['custom'] } },
 			},
 			{
 				displayName: 'To',
@@ -66,7 +97,7 @@ export class ScheduledPostsResource {
 				type: 'dateTime',
 				default: '',
 				required: true,
-				displayOptions: { show: { period: ['custom'] } },
+				displayOptions: { show: { operation: ['list'], period: ['custom'] } },
 			},
 			additionalFieldsProperty({
 				operations: ['list'],
@@ -112,6 +143,24 @@ export class ScheduledPostsResource {
 
 	async run(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		return await executeForEachItem(this, async (itemIndex) => {
+			const operation = String(this.getNodeParameter('operation', itemIndex));
+			if (operation === 'get' || operation === 'cancel') {
+				const id = Number(this.getNodeParameter('scheduledPostId', itemIndex));
+				if (!Number.isSafeInteger(id) || id <= 0) {
+					throw new Error('Scheduled Post ID must be a positive integer');
+				}
+				if (operation === 'get') {
+					return asDataObject(await dohooApiRequest(this, 'GET', `/api/scheduled-posts/${id}`));
+				}
+				if (this.getNodeParameter('confirmCancellation', itemIndex) !== true) {
+					throw new Error('Confirm Cancellation must be enabled before cancelling a scheduled post');
+				}
+				const response = asDataObject(
+					await dohooApiRequest(this, 'DELETE', `/api/scheduled-posts/${id}`),
+				);
+				return { ...response, success: response.success ?? true, scheduledPostId: id };
+			}
+			if (operation !== 'list') throw new Error(`Unsupported scheduled posts operation: ${operation}`);
 			const period = String(this.getNodeParameter('period', itemIndex));
 			const qs: IDataObject = {
 				period,

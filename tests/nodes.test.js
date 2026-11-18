@@ -384,6 +384,37 @@ test('DOHOO node exposes searchable social media metadata', () => {
 	assert.match(definition.description, /publish and schedule/i);
 });
 
+test('Scheduled Posts reads one job and requires confirmation before cancellation', async () => {
+	const details = { id: 123, status: 'pending', mediaId: 456, content: 'Original caption' };
+	const get = makeContext({
+		resource: 'scheduledPosts', operation: 'get', scheduledPostId: 123,
+	}, async () => details);
+	const getOutput = await new Dohoo().execute.call(get.context);
+	assert.deepEqual(getOutput[0][0].json, details);
+	assert.equal(get.apiCalls.length, 1);
+	assert.equal(get.apiCalls[0].method, 'GET');
+	assert.equal(get.apiCalls[0].url, '/api/scheduled-posts/123');
+
+	const unconfirmed = makeContext({
+		resource: 'scheduledPosts', operation: 'cancel', scheduledPostId: 123,
+		confirmCancellation: false,
+	});
+	await assert.rejects(new Dohoo().execute.call(unconfirmed.context), /Confirm Cancellation/);
+	assert.equal(unconfirmed.apiCalls.length, 0);
+
+	const cancel = makeContext({
+		resource: 'scheduledPosts', operation: 'cancel', scheduledPostId: 123,
+		confirmCancellation: true,
+	}, async () => ({ message: 'Scheduled post successfully cancelled' }));
+	const cancelOutput = await new Dohoo().execute.call(cancel.context);
+	assert.equal(cancelOutput[0][0].json.success, true);
+	assert.equal(cancelOutput[0][0].json.scheduledPostId, 123);
+	assert.equal(cancel.apiCalls.length, 1);
+	assert.equal(cancel.apiCalls[0].method, 'DELETE');
+	assert.equal(cancel.apiCalls[0].url, '/api/scheduled-posts/123');
+	assert.equal(cancel.apiCalls[0].body, undefined);
+});
+
 function makeContext(params, apiReply) {
 	const apiCalls = [];
 	const publicCalls = [];
@@ -808,7 +839,7 @@ test('Output modes simplify or select fields without losing an available ID', as
 	assert.deepEqual(selectedOutput[0][0].json, { id: 'post-1', status: 'published' });
 });
 
-test('all 24 visible operations are covered by the package descriptors', () => {
+test('all 26 visible operations are covered by the package descriptors', () => {
 	const expected = new Map([
 		['instagram', ['publish', 'publishCarousel']],
 		['facebook', ['publish', 'publishCarousel', 'publishStory']],
@@ -819,7 +850,7 @@ test('all 24 visible operations are covered by the package descriptors', () => {
 		['pinterest', ['publish', 'listBoards', 'createBoard']],
 		['threads', ['publish', 'publishMultipost']],
 		['media', ['delete', 'getUrl', 'getLatest', 'getStatus', 'list', 'upload']],
-		['scheduledPosts', ['list']],
+		['scheduledPosts', ['cancel', 'get', 'list']],
 		['transcription', ['transcribe']],
 	]);
 	const description = new Dohoo().description;
@@ -835,7 +866,7 @@ test('all 24 visible operations are covered by the package descriptors', () => {
 		assert.deepEqual(actual, operations);
 		count += actual.length;
 	}
-	assert.equal(count, 24);
+	assert.equal(count, 26);
 	const resource = description.properties.find((candidate) => candidate.name === 'resource');
 	assert.equal(resource.options.length, 11);
 });

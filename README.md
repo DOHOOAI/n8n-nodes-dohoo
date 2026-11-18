@@ -38,7 +38,7 @@ Install `n8n-nodes-dohoo` from the Community Nodes settings in n8n, or follow th
 | Pinterest       | Publish a pin; list boards; create a board; schedule a pin                         |
 | Threads         | Publish text and optional media; publish a multipost with 1–4 replies; schedule either operation |
 | Media           | Upload binary data or copy an HTTPS file; list, inspect, and permanently delete files |
-| Scheduled Posts | List pending, published, or failed scheduled posts                                 |
+| Scheduled Posts | List jobs, get full job details, or cancel a scheduled job by DOHOO ID             |
 | Transcription   | Transcribe a video stored in the DOHOO media library                               |
 
 ## Credentials
@@ -133,6 +133,8 @@ Use **DOHOO → Media → Delete File** with a numeric file ID to permanently re
 ## Scheduling
 
 For DOHOO scheduling, select **Schedule**, choose a future date, and supply an IANA timezone such as `Europe/Kiev`. The node converts offset-based n8n date values to the local wall-clock value expected by the DOHOO scheduler.
+
+To cancel a pending job, choose **Scheduled Posts → Get Post** to inspect its DOHOO ID and details, then **Scheduled Posts → Cancel Post** and enable **Confirm Cancellation**. This calls `DELETE /api/scheduled-posts/{id}`. It marks the job cancelled; uploaded media and already published social posts remain, and a send already in progress may still finish.
 
 Facebook Page carousels use an ISO 8601 instant with `Z` or an explicit offset. Their timezone is for display and does not shift that instant. The scheduled result's top-level `postId` is a DOHOO job ID; a published result's `data.postId` is the Facebook post ID.
 
